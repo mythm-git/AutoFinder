@@ -19,6 +19,7 @@ def test_loads_expected_foundation_configuration() -> None:
     assert config.collection.listings_per_run == 5
     assert config.apify.actor_id == "rKEiEgI8vfyKcaBUj"
     assert config.apify.timeout_seconds == 120
+    assert config.deduplication.state_file == "data/state/seen_listings.json"
 
 
 def test_rejects_nonpositive_listings_per_run(tmp_path: Path) -> None:

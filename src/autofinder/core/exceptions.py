@@ -23,3 +23,11 @@ class ApifyConfigurationError(CollectorError):
 
 class ApifyTransportError(CollectorError):
     """Raised when Apify network or API interactions fail without exposing request secrets."""
+
+
+class IdentityError(AutoFinderError):
+    """Raised when a raw marketplace listing lacks a stable external identity."""
+
+
+class SeenStateError(AutoFinderError):
+    """Raised when persistent seen-listing state is malformed, unreadable, or unwritable."""

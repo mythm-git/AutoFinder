@@ -4,7 +4,7 @@ AutoFinder searches for potentially profitable used cars. This is a new, local-f
 
 ## Current status
 
-Step 2 adds a configurable Apify-backed Kleinanzeigen collector behind `ListingCollector`. It preserves raw source evidence and is tested with sanitized fixtures. It does not yet normalize listings, detect duplicates, filter deals, call AI, calculate ROI, or send deal alerts.
+Step 3 adds stable identity-based early duplicate detection. Kleinanzeigen raw `id` becomes `marketplace:external_listing_id`; valid unseen listings are atomically persisted in local JSON before future filtering. Zero unseen listings is a successful no-op. It does not yet normalize listings, filter deals, call AI, calculate ROI, or send deal alerts.
 
 ## Local setup and run
 
@@ -15,7 +15,7 @@ python -m pip install -e ".[dev]"
 python -m autofinder
 ```
 
-Run tests with `python -m pytest`. An intentional live collector check is available as `python scripts/smoke_apify_collector.py --cache`; it always uses the configured `collection.listings_per_run` value and should be used sparingly because Apify use can incur charges.
+Run tests with `python -m pytest`. `python scripts/verify_deduplication.py` performs a local fixture-only verification; it makes no Apify call.
 
 ## Configuration and secrets
 

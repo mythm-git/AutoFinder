@@ -48,6 +48,13 @@ class ApifyConfig:
 
 
 @dataclass(frozen=True)
+class DeduplicationConfig:
+    """Project-relative persistent state location for v0.1 seen-listing memory."""
+
+    state_file: str
+
+
+@dataclass(frozen=True)
 class RangeConfig:
     """Inclusive numeric bounds used by future deterministic filters."""
 
@@ -81,6 +88,7 @@ class AppConfig:
     search: SearchConfig
     collection: CollectionConfig
     apify: ApifyConfig
+    deduplication: DeduplicationConfig
     filters: FiltersConfig
     ai: AIConfig
 
@@ -118,6 +126,7 @@ def _build_config(payload: dict[str, Any]) -> AppConfig:
     search = payload["search"]
     collection = payload["collection"]
     apify = payload["apify"]
+    deduplication = payload["deduplication"]
     filters = payload["filters"]
     ai = payload["ai"]
     config = AppConfig(
@@ -134,6 +143,9 @@ def _build_config(payload: dict[str, Any]) -> AppConfig:
         apify=ApifyConfig(
             actor_id=_nonempty_string(apify["actor_id"], "apify.actor_id"),
             timeout_seconds=_positive_int(apify["timeout_seconds"], "apify.timeout_seconds"),
+        ),
+        deduplication=DeduplicationConfig(
+            state_file=_relative_file_path(deduplication["state_file"], "deduplication.state_file"),
         ),
         filters=FiltersConfig(
             price=_range(filters["price"], "filters.price", "min_eur", "max_eur"),
@@ -163,6 +175,15 @@ def _nonempty_string(value: Any, field: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{field} must be a non-empty string")
     return value.strip()
+
+
+def _relative_file_path(value: Any, field: str) -> str:
+    """Validate a non-empty project-relative state file path."""
+    text = _nonempty_string(value, field)
+    path = Path(text)
+    if path.is_absolute() or ".." in path.parts:
+        raise ValueError(f"{field} must be a project-relative path without '..'")
+    return path.as_posix()
 
 
 def _http_url(value: Any, field: str) -> str:

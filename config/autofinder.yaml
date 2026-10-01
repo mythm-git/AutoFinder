@@ -14,6 +14,9 @@ apify:
   actor_id: "rKEiEgI8vfyKcaBUj"
   timeout_seconds: 120
 
+deduplication:
+  state_file: "data/state/seen_listings.json"
+
 filters:
   price:
     min_eur: 50

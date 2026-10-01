@@ -1,5 +1,11 @@
 # Changelog
 
+
+## 2.2.0 — Listing Identity and Early Deduplication
+
+- Added stable `marketplace:external_listing_id` identity extraction from raw Apify `id`.
+- Added atomic local JSON seen-state persistence and same-batch duplicate protection.
+- Added corruption-safe failure behavior, fixture-only verification, and typed deduplication statistics.
 ## 2.1.0 — Apify Kleinanzeigen Collector
 
 - Added `ApifyKleinanzeigenCollector` behind the stable `ListingCollector` contract.
