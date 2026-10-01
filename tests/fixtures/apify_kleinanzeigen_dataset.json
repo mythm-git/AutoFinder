@@ -1,0 +1,15 @@
+[
+  {
+    "id": "3521306041",
+    "title": "Sanitized example vehicle",
+    "description": "Service history documented.",
+    "price": 2450,
+    "currency": "EUR",
+    "url": "https://www.kleinanzeigen.de/s-anzeige/sanitized-example/3521306041",
+    "location": {"postalCode": "27449", "city": "Sanitized town"},
+    "images": ["https://example.invalid/image-1.jpg"],
+    "vehicle": {"make": "Example", "model": "Compact", "mileage": 155000, "powerPs": 90},
+    "seller": {"type": "private"},
+    "extraStructuredAttribute": {"sourceField": "preserved"}
+  }
+]

@@ -18,6 +18,8 @@ def test_loads_expected_foundation_configuration() -> None:
     assert config.search.postal_code == "27449"
     assert config.collection.max_new_listings_per_run == 5
     assert config.collection.acquisition_batch_size == 20
+    assert config.apify.actor_id == "rKEiEgI8vfyKcaBUj"
+    assert config.apify.timeout_seconds == 120
 
 
 def test_rejects_collection_batch_smaller_than_new_listing_limit(tmp_path: Path) -> None:

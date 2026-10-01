@@ -41,6 +41,14 @@ class CollectionConfig:
 
 
 @dataclass(frozen=True)
+class ApifyConfig:
+    """Non-secret Apify actor configuration for marketplace acquisition."""
+
+    actor_id: str
+    timeout_seconds: int
+
+
+@dataclass(frozen=True)
 class RangeConfig:
     """Inclusive numeric bounds used by future deterministic filters."""
 
@@ -73,6 +81,7 @@ class AppConfig:
     scheduler: SchedulerConfig
     search: SearchConfig
     collection: CollectionConfig
+    apify: ApifyConfig
     filters: FiltersConfig
     ai: AIConfig
 
@@ -109,6 +118,7 @@ def _build_config(payload: dict[str, Any]) -> AppConfig:
     scheduler = payload["scheduler"]
     search = payload["search"]
     collection = payload["collection"]
+    apify = payload["apify"]
     filters = payload["filters"]
     ai = payload["ai"]
     config = AppConfig(
@@ -122,6 +132,10 @@ def _build_config(payload: dict[str, Any]) -> AppConfig:
         collection=CollectionConfig(
             max_new_listings_per_run=_positive_int(collection["max_new_listings_per_run"], "collection.max_new_listings_per_run"),
             acquisition_batch_size=_positive_int(collection["acquisition_batch_size"], "collection.acquisition_batch_size"),
+        ),
+        apify=ApifyConfig(
+            actor_id=_nonempty_string(apify["actor_id"], "apify.actor_id"),
+            timeout_seconds=_positive_int(apify["timeout_seconds"], "apify.timeout_seconds"),
         ),
         filters=FiltersConfig(
             price=_range(filters["price"], "filters.price", "min_eur", "max_eur"),

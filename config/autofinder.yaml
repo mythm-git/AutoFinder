@@ -11,6 +11,10 @@ collection:
   max_new_listings_per_run: 5
   acquisition_batch_size: 20
 
+apify:
+  actor_id: "rKEiEgI8vfyKcaBUj"
+  timeout_seconds: 120
+
 filters:
   price:
     min_eur: 50
