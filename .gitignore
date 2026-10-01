@@ -1,0 +1,20 @@
+# Local secrets
+.env
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Runtime-generated files
+logs/*.log
+data/state/*
+!data/state/.gitkeep
+data/cache/*
+!data/cache/.gitkeep
+*.tmp

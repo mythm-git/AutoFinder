@@ -1,0 +1,27 @@
+scheduler:
+  interval_minutes: 45
+
+search:
+  marketplace: "kleinanzeigen"
+  postal_code: "27449"
+  radius_km: 50
+  search_url: "https://www.kleinanzeigen.de/s-autos/27449/sortierung:neuste/preis:50:3000/c216l2709r50+autos.km_i:0%2C200000+autos.power_i:65%2C200+autos.schaden_s:nein"
+
+collection:
+  max_new_listings_per_run: 5
+  acquisition_batch_size: 20
+
+filters:
+  price:
+    min_eur: 50
+    max_eur: 3000
+  mileage:
+    max_km: 200000
+  power:
+    min_ps: 65
+    max_ps: 200
+  reject_dealers: true
+
+ai:
+  primary_provider: "groq"
+  fallback_provider: "gemini"
