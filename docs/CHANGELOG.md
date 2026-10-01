@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.0 — Basic Deterministic Deal Filters
+
+- Added configurable explainable price, URL, seller, dealer-text, mileage, and power checks.
+- Added typed filter decisions, stable rejection codes, warnings, and batch statistics.
+- Kept filtering separate from AI and preserved raw marketplace evidence.
+
 
 ## 2.2.0 — Listing Identity and Early Deduplication
 

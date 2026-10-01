@@ -20,6 +20,9 @@ def test_loads_expected_foundation_configuration() -> None:
     assert config.apify.actor_id == "rKEiEgI8vfyKcaBUj"
     assert config.apify.timeout_seconds == 120
     assert config.deduplication.state_file == "data/state/seen_listings.json"
+    assert config.filters.mileage.minimum == 0
+    assert config.filters.mileage.maximum == 200000
+    assert "autohaus" in config.filters.dealer_text_indicators
 
 
 def test_rejects_nonpositive_listings_per_run(tmp_path: Path) -> None:

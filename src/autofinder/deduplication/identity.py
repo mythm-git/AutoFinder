@@ -27,6 +27,7 @@ def extract_listing_identity(listing: RawMarketplaceListing) -> ListingIdentity:
     if not isinstance(external_id, str) or not external_id.strip():
         raise IdentityError("Listing has no usable external listing ID.")
     normalized_id = external_id.strip()
-    if not normalized_id.isdigit():
-        raise IdentityError("Listing external listing ID is malformed.")
-    return ListingIdentity(listing.marketplace.strip().lower(), normalized_id)
+    marketplace = listing.marketplace.strip().lower()
+    if not normalized_id.isdigit() or not marketplace:
+        raise IdentityError("Listing external listing ID or marketplace is malformed.")
+    return ListingIdentity(marketplace, normalized_id)

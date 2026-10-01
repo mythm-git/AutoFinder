@@ -9,9 +9,10 @@ This document describes intent, not a completed runtime pipeline.
 5. Every valid unseen identity is atomically marked seen immediately; later filtering must not delay this.
 6. Historical duplicates, same-batch duplicates, and records without reliable IDs stop here.
 7. If all five are already known, the run ends successfully with zero downstream processing; it does not search deeper for replacements.
-8. Later normalization validates raw source fields, then cheap deterministic filters run before AI.
-9. AI later interprets uncertainty, condition, repair inputs, resale ranges, confidence, and risks.
-10. Python later performs final financial arithmetic and deal threshold checks.
-11. A future runtime/deal reporter emits candidate alerts.
+8. `BasicDealFilter` applies configured deterministic URL, price, seller, dealer-text, mileage, and power checks without changing raw evidence.
+9. Rejected listings remain seen; missing optional mileage/power create warnings rather than rejection.
+10. Future AI later interprets uncertainty, condition, repair inputs, resale ranges, confidence, and risks for passed listings only.
+11. Python later performs final financial arithmetic and deal threshold checks.
+12. A future runtime/deal reporter emits candidate alerts.
 
-Collection and persistent early deduplication are implemented. Normalization, filtering, AI, valuation, arithmetic, and deal evaluation are not.
+Collection, persistent early deduplication, and deterministic filtering are implemented. Normalization, AI, valuation, arithmetic, and deal evaluation are not.

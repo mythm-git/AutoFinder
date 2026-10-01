@@ -64,12 +64,13 @@ class RangeConfig:
 
 @dataclass(frozen=True)
 class FiltersConfig:
-    """Future inexpensive eligibility criteria."""
+    """Configurable deterministic eligibility criteria before AI work."""
 
     price: RangeConfig
-    mileage_max_km: int
+    mileage: RangeConfig
     power: RangeConfig
     reject_dealers: bool
+    dealer_text_indicators: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -149,9 +150,10 @@ def _build_config(payload: dict[str, Any]) -> AppConfig:
         ),
         filters=FiltersConfig(
             price=_range(filters["price"], "filters.price", "min_eur", "max_eur"),
-            mileage_max_km=_positive_int(filters["mileage"]["max_km"], "filters.mileage.max_km"),
+            mileage=_range_allowing_zero(filters["mileage"], "filters.mileage", "min_km", "max_km"),
             power=_range(filters["power"], "filters.power", "min_ps", "max_ps"),
             reject_dealers=_bool(filters["reject_dealers"], "filters.reject_dealers"),
+            dealer_text_indicators=_nonempty_string_tuple(filters["dealer_text_indicators"], "filters.dealer_text_indicators"),
         ),
         ai=AIConfig(
             primary_provider=_nonempty_string(ai["primary_provider"], "ai.primary_provider"),
@@ -199,6 +201,26 @@ def _bool(value: Any, field: str) -> bool:
     if not isinstance(value, bool):
         raise ValueError(f"{field} must be a boolean")
     return value
+
+
+def _nonempty_string_tuple(value: Any, field: str) -> tuple[str, ...]:
+    """Validate a non-empty sequence of configurable normalized text indicators."""
+    if not isinstance(value, list) or not value:
+        raise ValueError(f"{field} must be a non-empty list")
+    return tuple(_nonempty_string(item, field) for item in value)
+
+
+def _range_allowing_zero(value: Any, field: str, min_key: str, max_key: str) -> RangeConfig:
+    """Validate non-negative inclusive bounds, allowing zero mileage."""
+    if not isinstance(value, dict):
+        raise ValueError(f"{field} must be a mapping")
+    minimum = value[min_key]
+    maximum = value[max_key]
+    if any(isinstance(item, bool) or not isinstance(item, int) or item < 0 for item in (minimum, maximum)):
+        raise ValueError(f"{field} bounds must be non-negative integers")
+    if minimum > maximum:
+        raise ValueError(f"{field} minimum cannot exceed maximum")
+    return RangeConfig(minimum, maximum)
 
 
 def _range(value: Any, field: str, min_key: str, max_key: str) -> RangeConfig:

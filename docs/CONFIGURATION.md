@@ -8,7 +8,10 @@
 - `apify.actor_id`: verified non-secret Actor ID.
 - `apify.timeout_seconds`: end-to-end actor collection timeout.
 - `deduplication.state_file`: project-relative local JSON state path; its default is `data/state/seen_listings.json`.
-- `filters` and `ai`: future pipeline configuration, not implemented business behavior.
+- `filters.price`, `filters.mileage`, and `filters.power`: inclusive deterministic bounds checked internally.
+- `filters.reject_dealers`: enables structured seller and configured text-indicator rejection.
+- `filters.dealer_text_indicators`: normalized case-insensitive exact phrases checked only when dealer rejection is enabled.
+- `ai`: future pipeline configuration, not implemented business behavior.
 
 The current verified actor accepts an input object with exactly the relevant fields:
 
@@ -17,6 +20,10 @@ The current verified actor accepts an input object with exactly the relevant fie
 ```
 
 The collector never uses `startUrls`. For a live smoke check, run the smoke script without a count override; it uses the configured v0.1 limit. Do not repeatedly call Apify while debugging downstream code.
+
+## Deterministic filter semantics
+
+Filtering runs only after a valid unseen listing has been persisted. Price, URL, invalid identity, explicit dealer status, configured dealer text, and malformed/out-of-range present mileage or power reject. Missing mileage or power is a warning, not a rejection. Raw evidence is never rewritten. The future AI stage receives only passed listings.
 
 `config/logging.yaml` controls level and rotation limits. Configuration errors fail visibly. The seen-state path must remain project-relative.
 

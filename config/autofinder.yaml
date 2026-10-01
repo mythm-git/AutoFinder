@@ -22,11 +22,19 @@ filters:
     min_eur: 50
     max_eur: 3000
   mileage:
+    min_km: 0
     max_km: 200000
   power:
     min_ps: 65
     max_ps: 200
   reject_dealers: true
+  dealer_text_indicators:
+    - "finanzierung ohne anzahlung"
+    - "inzahlungnahme"
+    - "autohaus"
+    - "kfz-handel"
+    - "weitere fahrzeuge"
+    - "verkaufsteam"
 
 ai:
   primary_provider: "groq"
