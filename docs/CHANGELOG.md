@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.4.0 — Canonical Listing Normalization
+
+- Added the canonical `NormalizedListing` domain model and an Apify-to-domain normalizer.
+- Preserved immutable raw source evidence and explicit missing-value warnings.
+- Refactored `BasicDealFilter` to consume normalized fields instead of Apify payload paths.
+- Added fixture-only normalization and ordering verification.
+
 ## 2.3.0 — Basic Deterministic Deal Filters
 
 - Added configurable explainable price, URL, seller, dealer-text, mileage, and power checks.

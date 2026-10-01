@@ -1,5 +1,9 @@
 # Configuration
 
+## Normalization
+
+Normalization has no changing business thresholds. It maps only verified source fields after deduplication, keeps raw evidence, and uses `None` plus warnings for unavailable optional facts. Price, mileage, power, and dealer rules remain configured under `filters` and are evaluated only against canonical normalized fields.
+
 `config/autofinder.yaml` contains non-secret editable settings.
 
 - `scheduler.interval_minutes`: future external scheduler cadence.

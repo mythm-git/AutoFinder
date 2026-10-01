@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
-from autofinder.models.collection import RawMarketplaceListing
+from autofinder.models.normalized_listing import NormalizedListing
 
 
 class FilterRejectionReason(StrEnum):
@@ -38,9 +38,9 @@ class FilterWarning(StrEnum):
 
 @dataclass(frozen=True)
 class BasicFilterResult:
-    """Decision for one raw listing without changing its source evidence."""
+    """Decision for one normalized listing without changing source evidence."""
 
-    listing: RawMarketplaceListing
+    listing: NormalizedListing
     passed: bool
     rejection_reasons: tuple[FilterRejectionReason, ...]
     warnings: tuple[FilterWarning, ...]
@@ -49,11 +49,11 @@ class BasicFilterResult:
 
 @dataclass(frozen=True)
 class BasicFilterBatchResult:
-    """Summary of deterministic filtering for deduplicated raw listings."""
+    """Summary of deterministic filtering for deduplicated normalized listings."""
 
     received_count: int
     passed_count: int
     rejected_count: int
-    passed_listings: tuple[RawMarketplaceListing, ...]
+    passed_listings: tuple[NormalizedListing, ...]
     results: tuple[BasicFilterResult, ...]
     rejection_reason_counts: dict[FilterRejectionReason, int]

@@ -1,5 +1,7 @@
 # Planned pipeline
 
+The implemented boundary is now: Apify latest five → minimal identity extraction → persistent early deduplication → full canonical normalization → deterministic basic filters. If deduplication finds zero unseen listings, normalization and filtering do no work and the run is a successful no-op. AI, valuation, financial calculations, and reporting remain future stages.
+
 This document describes intent, not a completed runtime pipeline.
 
 1. External n8n scheduling later starts Python using the configured interval.

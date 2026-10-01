@@ -31,3 +31,7 @@ class IdentityError(AutoFinderError):
 
 class SeenStateError(AutoFinderError):
     """Raised when persistent seen-listing state is malformed, unreadable, or unwritable."""
+
+
+class NormalizationError(AutoFinderError):
+    """Raised when source data cannot safely form a canonical normalized listing."""

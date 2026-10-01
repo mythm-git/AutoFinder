@@ -1,146 +1,146 @@
-"""Fixture-only tests for configurable deterministic deal filtering."""
-
+"""Tests for deterministic filtering over canonical AutoFinder listings."""
 from __future__ import annotations
 
-import json
+from copy import deepcopy
 from dataclasses import replace
 from datetime import UTC, datetime
+import inspect
+import json
 from pathlib import Path
 
 import pytest
 
-from autofinder.core.config import FiltersConfig, RangeConfig, load_config
+from autofinder.core.config import FiltersConfig, RangeConfig
 from autofinder.filters.basic import BasicDealFilter
 from autofinder.models.collection import RawMarketplaceListing
-from autofinder.models.filtering import BasicFilterResult, FilterRejectionReason as Reason, FilterWarning
+from autofinder.models.filtering import FilterRejectionReason as Reason, FilterWarning
+from autofinder.normalization import ApifyKleinanzeigenNormalizer
 
 
-ROOT = Path(__file__).resolve().parents[2]
-FIXTURE = ROOT / "tests" / "fixtures" / "apify_kleinanzeigen_dataset.json"
-FILTERS = load_config(ROOT / "config" / "autofinder.yaml").filters
-NOW = datetime(2026, 10, 1, tzinfo=UTC)
+FIXTURE = Path(__file__).parents[1] / "fixtures" / "apify_kleinanzeigen_dataset.json"
+FILTERS = FiltersConfig(
+    price=RangeConfig(50, 3000), mileage=RangeConfig(0, 200000), power=RangeConfig(65, 200),
+    reject_dealers=True,
+    dealer_text_indicators=("finanzierung ohne anzahlung", "inzahlungnahme", "autohaus", "kfz-handel", "weitere fahrzeuge", "verkaufsteam"),
+)
 
 
-def _listing(identifier: str = "3521306041") -> RawMarketplaceListing:
-    """Return a fresh valid private listing from the sanitized Apify fixture."""
-    raw = json.loads(FIXTURE.read_text(encoding="utf-8"))[0]
-    raw["id"] = identifier
-    return RawMarketplaceListing("kleinanzeigen", raw, NOW)
+def _raw(identifier: str = "3521306041") -> RawMarketplaceListing:
+    """Build an independent sanitized raw listing for one test."""
+    payload = json.loads(FIXTURE.read_text(encoding="utf-8"))[0]
+    payload["id"] = identifier
+    return RawMarketplaceListing("kleinanzeigen", payload, datetime.now(UTC))
 
 
-def _result(listing: RawMarketplaceListing, config: FiltersConfig = FILTERS) -> BasicFilterResult:
-    """Filter one listing with an optionally adjusted typed configuration."""
-    return BasicDealFilter(config).filter_listing(listing)
+def _normalized(identifier: str = "3521306041"):
+    """Normalize a fixture record before passing it to the filter."""
+    return ApifyKleinanzeigenNormalizer().normalize(_raw(identifier))
 
 
-def test_valid_listing_and_price_boundaries_pass() -> None:
-    """Valid structured private listings pass at both configured price bounds."""
-    for price in (FILTERS.price.minimum, FILTERS.price.maximum):
-        listing = _listing(str(price))
-        listing.raw_data["price"] = price
-        result = _result(listing)
-        assert result.passed and not result.rejection_reasons
+def _result(raw: RawMarketplaceListing, config: FiltersConfig = FILTERS):
+    """Normalize then filter a listing, mirroring the production boundary."""
+    normalized = ApifyKleinanzeigenNormalizer().normalize(raw)
+    return BasicDealFilter(config).filter_listing(normalized.listing, normalized.warnings)
 
 
-@pytest.mark.parametrize(("price", "reason"), [
-    (49, Reason.PRICE_BELOW_MINIMUM), (3001, Reason.PRICE_ABOVE_MAXIMUM), ("VB", Reason.INVALID_PRICE), (None, Reason.MISSING_PRICE),
-])
-def test_price_rejections_are_explicit(price: object, reason: Reason) -> None:
-    """Missing, free-text, and out-of-range prices do not silently pass."""
-    listing = _listing()
-    listing.raw_data["price"] = price
-    assert reason in _result(listing).rejection_reasons
-
-
-def test_structured_seller_rules_and_unknown_warning() -> None:
-    """Structured dealer rejects, private passes, and unknown remains non-blocking."""
-    dealer = _listing("1")
-    dealer.raw_data["seller"] = {"type": "commercial"}
-    assert Reason.DEALER_SELLER in _result(dealer).rejection_reasons
-    private = _listing("2")
-    assert _result(private).passed
-    unknown = _listing("3")
-    unknown.raw_data.pop("seller")
-    unknown_result = _result(unknown)
-    assert unknown_result.passed and FilterWarning.UNKNOWN_SELLER_TYPE in unknown_result.warnings
-
-
-@pytest.mark.parametrize("indicator", FILTERS.dealer_text_indicators)
-def test_configured_dealer_indicators_are_case_insensitive(indicator: str) -> None:
-    """Every configured exact phrase rejects independent of input case."""
-    listing = _listing()
-    listing.raw_data["description"] = indicator.upper()
-    result = _result(listing)
-    assert Reason.DEALER_TEXT_INDICATOR in result.rejection_reasons
-    assert indicator in result.matched_indicators
-
-
-def test_dealer_patterns_and_rejection_switch_are_configurable() -> None:
-    """Changed configuration alters decisions without filter code changes."""
-    listing = _listing()
-    listing.raw_data["description"] = "SPECIAL SHOWROOM WORD"
-    configured = replace(FILTERS, dealer_text_indicators=("showroom word",))
-    assert Reason.DEALER_TEXT_INDICATOR in _result(listing, configured).rejection_reasons
-    no_dealer_rejection = replace(configured, reject_dealers=False)
-    assert _result(listing, no_dealer_rejection).passed
-
-
-@pytest.mark.parametrize(("field", "value", "reason"), [
-    ("mileage", 200001, Reason.MILEAGE_ABOVE_MAXIMUM),
-    ("mileage", "many", Reason.INVALID_MILEAGE),
-    ("powerPs", 64, Reason.POWER_BELOW_MINIMUM),
-    ("powerPs", 201, Reason.POWER_ABOVE_MAXIMUM),
-    ("powerPs", "unknown", Reason.INVALID_POWER),
-])
-def test_optional_numeric_values_are_checked_when_present(field: str, value: object, reason: Reason) -> None:
-    """Present malformed or out-of-range vehicle attributes reject deterministically."""
-    listing = _listing()
-    listing.raw_data["vehicle"][field] = value
-    assert reason in _result(listing).rejection_reasons
-
-
-def test_missing_optional_vehicle_values_are_warnings_not_rejections() -> None:
-    """Missing mileage and power remain available for later AI interpretation."""
-    listing = _listing()
-    listing.raw_data["vehicle"].pop("mileage")
-    listing.raw_data["vehicle"].pop("powerPs")
-    result = _result(listing)
+def test_normalized_listing_is_the_filter_contract() -> None:
+    """A canonical listing, not raw Apify data, is accepted by the filter."""
+    normalized = _normalized()
+    result = BasicDealFilter(FILTERS).filter_listing(normalized.listing, normalized.warnings)
     assert result.passed
-    assert {FilterWarning.MISSING_MILEAGE, FilterWarning.MISSING_POWER}.issubset(result.warnings)
+    assert result.listing is normalized.listing
 
 
-def test_url_identity_and_unusable_content_reject_defensively() -> None:
-    """Unexpected contract violations do not pass the deterministic boundary."""
-    listing = _listing()
-    # Rebuild the frozen wrapper to model malformed upstream identity input.
-    invalid_identity = RawMarketplaceListing("", listing.raw_data, NOW)
-    invalid_identity.raw_data["url"] = "not-a-url"
-    invalid_identity.raw_data["title"] = ""
-    invalid_identity.raw_data["description"] = ""
-    reasons = _result(invalid_identity).rejection_reasons
-    assert {Reason.INVALID_IDENTITY, Reason.MISSING_OR_INVALID_URL, Reason.UNUSABLE_LISTING}.issubset(reasons)
+def test_price_boundaries_and_failures_are_explicit() -> None:
+    """Configured inclusive price limits retain stable rejection codes."""
+    for price in (50, 3000):
+        raw = _raw(str(price)); raw.raw_data["price"] = price
+        assert _result(raw).passed
+    for price, reason in ((49, Reason.PRICE_BELOW_MINIMUM), (3001, Reason.PRICE_ABOVE_MAXIMUM)):
+        raw = _raw(str(price)); raw.raw_data["price"] = price
+        assert reason in _result(raw).rejection_reasons
+    missing = _raw(); missing.raw_data.pop("price")
+    assert Reason.MISSING_PRICE in _result(missing).rejection_reasons
+    malformed = _raw(); malformed.raw_data["price"] = "VB"
+    assert Reason.INVALID_PRICE in _result(malformed).rejection_reasons
 
 
-def test_multiple_reasons_batch_counts_and_raw_evidence_are_preserved() -> None:
-    """Batch output retains original objects and counts every stable rejection code."""
-    valid = _listing("1")
-    expensive = _listing("2")
-    expensive.raw_data["price"] = 3001
-    dealer = _listing("3")
-    dealer.raw_data["seller"] = {"type": "dealer"}
-    original = json.dumps(expensive.raw_data, sort_keys=True)
-    batch = BasicDealFilter(FILTERS).filter_batch((valid, expensive, dealer))
-    assert batch.received_count == 3 and batch.passed_count == 1 and batch.rejected_count == 2
+def test_structured_and_text_dealer_rules_are_configurable() -> None:
+    """Normalized seller type and title/description indicators remain independent."""
+    dealer = _raw("1"); dealer.raw_data["seller"] = {"type": "commercial"}
+    assert Reason.DEALER_SELLER in _result(dealer).rejection_reasons
+    private = _raw("2"); private.raw_data["seller"] = {"type": "private"}
+    assert _result(private).passed
+    unknown = _raw("3"); unknown.raw_data["seller"] = {"type": "unverified"}
+    unknown_result = _result(unknown)
+    assert unknown_result.passed
+    assert FilterWarning.UNKNOWN_SELLER_TYPE in unknown_result.warnings
+    for index, indicator in enumerate(FILTERS.dealer_text_indicators, start=10):
+        advertised = _raw(str(index)); advertised.raw_data["description"] = indicator.upper()
+        assert Reason.DEALER_TEXT_INDICATOR in _result(advertised).rejection_reasons
+    custom = _raw("20"); custom.raw_data["description"] = "SPECIAL SHOWROOM WORD"
+    configured = replace(FILTERS, dealer_text_indicators=("showroom word",))
+    assert Reason.DEALER_TEXT_INDICATOR in _result(custom, configured).rejection_reasons
+    assert _result(custom).passed
+    assert _result(dealer, replace(FILTERS, reject_dealers=False)).passed
+
+
+def test_vehicle_ranges_and_missing_optional_values() -> None:
+    """Canonical mileage and power retain prior range and warning semantics."""
+    high_mileage = _raw("1"); high_mileage.raw_data["vehicle"]["mileage"] = 200001
+    assert Reason.MILEAGE_ABOVE_MAXIMUM in _result(high_mileage).rejection_reasons
+    low_power = _raw("2"); low_power.raw_data["vehicle"]["powerPs"] = 64
+    assert Reason.POWER_BELOW_MINIMUM in _result(low_power).rejection_reasons
+    high_power = _raw("3"); high_power.raw_data["vehicle"]["powerPs"] = 201
+    assert Reason.POWER_ABOVE_MAXIMUM in _result(high_power).rejection_reasons
+    optional_missing = _raw("4")
+    optional_missing.raw_data["vehicle"].pop("mileage"); optional_missing.raw_data["vehicle"].pop("powerPs")
+    result = _result(optional_missing)
+    assert result.passed
+    assert FilterWarning.MISSING_MILEAGE in result.warnings
+    assert FilterWarning.MISSING_POWER in result.warnings
+    invalid = _raw("5")
+    invalid.raw_data["vehicle"]["mileage"] = "many"; invalid.raw_data["vehicle"]["powerPs"] = "fast"
+    invalid_result = _result(invalid)
+    assert Reason.INVALID_MILEAGE in invalid_result.rejection_reasons
+    assert Reason.INVALID_POWER in invalid_result.rejection_reasons
+
+
+def test_url_identity_and_multiple_reasons_are_defensive() -> None:
+    """Structural contract failures are explicit and can coexist with price failures."""
+    raw = _raw(); raw.raw_data["url"] = "not a URL"; raw.raw_data["price"] = 3001
+    result = _result(raw)
+    assert Reason.MISSING_OR_INVALID_URL in result.rejection_reasons
+    assert Reason.PRICE_ABOVE_MAXIMUM in result.rejection_reasons
+    normalized = _normalized().listing
+    invalid_identity = replace(normalized, identity=replace(normalized.identity, external_listing_id=""))
+    assert Reason.INVALID_IDENTITY in BasicDealFilter(FILTERS).filter_listing(invalid_identity).rejection_reasons
+
+
+def test_batch_counts_raw_evidence_and_thresholds_are_preserved() -> None:
+    """Batch results keep normalized objects and configuration controls behavior."""
+    valid = _raw("1")
+    expensive = _raw("2"); expensive.raw_data["price"] = 3500
+    raw_snapshot = deepcopy(expensive.raw_data)
+    normalizer = ApifyKleinanzeigenNormalizer()
+    normalizations = tuple(normalizer.normalize(item) for item in (valid, expensive))
+    batch = BasicDealFilter(FILTERS).filter_batch(tuple(item.listing for item in normalizations), tuple(item.warnings for item in normalizations))
+    assert (batch.received_count, batch.passed_count, batch.rejected_count) == (2, 1, 1)
     assert batch.rejection_reason_counts[Reason.PRICE_ABOVE_MAXIMUM] == 1
-    assert batch.rejection_reason_counts[Reason.DEALER_SELLER] == 1
-    assert batch.passed_listings[0] is valid
-    assert json.dumps(expensive.raw_data, sort_keys=True) == original
+    assert expensive.raw_data == raw_snapshot
+    assert _result(expensive, replace(FILTERS, price=RangeConfig(50, 4000))).passed
 
 
-def test_thresholds_are_configurable_and_logs_do_not_contain_representative_secret(caplog: pytest.LogCaptureFixture) -> None:
-    """Changing a typed threshold changes behavior without leaking unrelated values."""
-    listing = _listing()
-    listing.raw_data["price"] = 3500
-    raised_maximum = replace(FILTERS, price=RangeConfig(50, 4000))
-    assert _result(listing, raised_maximum).passed
-    assert "super-secret" not in caplog.text
+def test_safe_logs_never_contain_representative_secret(caplog: pytest.LogCaptureFixture) -> None:
+    """Filter diagnostics do not disclose unrelated sensitive strings."""
+    secret = "apify_secret_should_not_appear"
+    raw = _raw(); raw.raw_data["description"] = secret
+    _result(raw)
+    assert secret not in caplog.text
+
+
+def test_filter_implementation_has_no_apify_payload_path_dependency() -> None:
+    """Business filtering cannot regress to direct source-payload field access."""
+    implementation = inspect.getsource(BasicDealFilter)
+    for source_specific_path in ("raw_data", "powerPs", "postalCode", "seller["):
+        assert source_specific_path not in implementation
