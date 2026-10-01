@@ -16,18 +16,17 @@ def test_loads_expected_foundation_configuration() -> None:
     config = load_config(CONFIG_PATH)
     assert config.scheduler.interval_minutes == 45
     assert config.search.postal_code == "27449"
-    assert config.collection.max_new_listings_per_run == 5
-    assert config.collection.acquisition_batch_size == 20
+    assert config.collection.listings_per_run == 5
     assert config.apify.actor_id == "rKEiEgI8vfyKcaBUj"
     assert config.apify.timeout_seconds == 120
 
 
-def test_rejects_collection_batch_smaller_than_new_listing_limit(tmp_path: Path) -> None:
-    """Invalid collection semantics fail clearly rather than silently proceeding."""
-    config = CONFIG_PATH.read_text(encoding="utf-8").replace("acquisition_batch_size: 20", "acquisition_batch_size: 4")
+def test_rejects_nonpositive_listings_per_run(tmp_path: Path) -> None:
+    """The configured bounded request size must remain positive."""
+    config = CONFIG_PATH.read_text(encoding="utf-8").replace("listings_per_run: 5", "listings_per_run: 0")
     invalid = tmp_path / "invalid.yaml"
     invalid.write_text(config, encoding="utf-8")
-    with pytest.raises(ConfigurationError, match="acquisition_batch_size"):
+    with pytest.raises(ConfigurationError, match="listings_per_run"):
         load_config(invalid)
 
 

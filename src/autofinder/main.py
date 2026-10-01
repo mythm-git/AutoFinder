@@ -30,12 +30,12 @@ def main() -> int:
     config = load_config(PROJECT_ROOT / "config" / "autofinder.yaml")
     logger.info("AutoFinder v2 started.")
     logger.info(
-        "Foundation configuration: marketplace=%s postal_code=%s radius_km=%s interval_minutes=%s max_new_listings=%s",
+        "Foundation configuration: marketplace=%s postal_code=%s radius_km=%s interval_minutes=%s listings_per_run=%s",
         config.search.marketplace,
         config.search.postal_code,
         config.search.radius_km,
         config.scheduler.interval_minutes,
-        config.collection.max_new_listings_per_run,
+        config.collection.listings_per_run,
     )
     logger.info("No runtime pipeline has been implemented yet.")
     return 0

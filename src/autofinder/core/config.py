@@ -34,10 +34,9 @@ class SearchConfig:
 
 @dataclass(frozen=True)
 class CollectionConfig:
-    """Controls collection breadth and unseen-listing throughput."""
+    """Controls the bounded newest-listings request for AutoFinder v0.1."""
 
-    max_new_listings_per_run: int
-    acquisition_batch_size: int
+    listings_per_run: int
 
 
 @dataclass(frozen=True)
@@ -130,8 +129,7 @@ def _build_config(payload: dict[str, Any]) -> AppConfig:
             search_url=_http_url(search["search_url"], "search.search_url"),
         ),
         collection=CollectionConfig(
-            max_new_listings_per_run=_positive_int(collection["max_new_listings_per_run"], "collection.max_new_listings_per_run"),
-            acquisition_batch_size=_positive_int(collection["acquisition_batch_size"], "collection.acquisition_batch_size"),
+            listings_per_run=_positive_int(collection["listings_per_run"], "collection.listings_per_run"),
         ),
         apify=ApifyConfig(
             actor_id=_nonempty_string(apify["actor_id"], "apify.actor_id"),
@@ -148,8 +146,6 @@ def _build_config(payload: dict[str, Any]) -> AppConfig:
             fallback_provider=_nonempty_string(ai["fallback_provider"], "ai.fallback_provider"),
         ),
     )
-    if config.collection.acquisition_batch_size < config.collection.max_new_listings_per_run:
-        raise ValueError("collection.acquisition_batch_size must be at least max_new_listings_per_run")
     if config.filters.price.minimum > config.filters.price.maximum:
         raise ValueError("filters.price minimum cannot exceed maximum")
     return config

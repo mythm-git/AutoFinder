@@ -4,7 +4,7 @@ AutoFinder is code-first and Python-first. n8n later has a deliberately small bo
 
 Python owns collection, raw-evidence preservation, normalization, early deduplication, deterministic filtering, AI orchestration, valuation inputs, canonical financial calculations, deal evaluation, logging, reporting, and application lifecycle.
 
-`ApifyKleinanzeigenCollector` is the initial `ListingCollector` implementation. It receives `SearchConfig`, `CollectionConfig`, and `ApifyConfig`, sends only the verified actor payload fields `searchUrl` and `maxItems`, and returns `CollectionResult`/`RawMarketplaceListing` evidence. A future direct Kleinanzeigen collector can replace it without changing downstream consumers. The configured acquisition batch size is intentionally separate from the later maximum unseen-listing throughput.
+`ApifyKleinanzeigenCollector` is the initial `ListingCollector` implementation. It receives `SearchConfig`, `CollectionConfig`, and `ApifyConfig`, sends only the verified actor payload fields `searchUrl` and `maxItems`, and returns `CollectionResult`/`RawMarketplaceListing` evidence. A future direct Kleinanzeigen collector can replace it without changing downstream consumers. In v0.1, the collector requests only the configured latest-listings limit (initially 5) and never searches deeper to replace later duplicates.
 
 Apify/Kleinanzeigen results are acquisition evidence, not trusted business validation: later normalization and filters independently validate important conditions even if the configured search URL contains filters. Raw item mappings are retained intact.
 

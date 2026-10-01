@@ -15,7 +15,7 @@ python -m pip install -e ".[dev]"
 python -m autofinder
 ```
 
-Run tests with `python -m pytest`. An intentional live collector check is available as `python scripts/smoke_apify_collector.py --max-items 5 --cache`; use it sparingly because Apify use can incur charges.
+Run tests with `python -m pytest`. An intentional live collector check is available as `python scripts/smoke_apify_collector.py --cache`; it always uses the configured `collection.listings_per_run` value and should be used sparingly because Apify use can incur charges.
 
 ## Configuration and secrets
 

@@ -16,7 +16,7 @@ from autofinder.core.exceptions import ApifyConfigurationError, ApifyTransportEr
 
 ROOT = Path(__file__).resolve().parents[2]
 SEARCH = SearchConfig("kleinanzeigen", "27449", 50, "https://example.invalid/configured-search")
-COLLECTION = CollectionConfig(max_new_listings_per_run=5, acquisition_batch_size=20)
+COLLECTION = CollectionConfig(listings_per_run=5)
 APIFY = ApifyConfig("verifiedActor", 120)
 
 
@@ -46,7 +46,7 @@ def _fixture_dataset() -> list[dict[str, Any]]:
 def test_collect_uses_verified_actor_input_schema_and_preserves_raw_data() -> None:
     """The actor receives exactly searchUrl/maxItems and rich raw fields survive."""
     transport = FakeTransport([_run(), _fixture_dataset()])
-    result = ApifyKleinanzeigenCollector(SEARCH, COLLECTION, APIFY, transport).collect(5)
+    result = ApifyKleinanzeigenCollector(SEARCH, COLLECTION, APIFY, transport).collect()
     method, path, payload, timeout = transport.calls[0]
     assert method == "POST"
     assert path.startswith("/acts/verifiedActor/runs?waitForFinish=")
@@ -59,18 +59,19 @@ def test_collect_uses_verified_actor_input_schema_and_preserves_raw_data() -> No
     assert transport.calls[1][1] == "/datasets/dataset-safe-123/items?limit=5"
 
 
-def test_collect_uses_configured_acquisition_batch_when_no_override() -> None:
-    """The future acquisition batch is distinct from the unseen-listing limit."""
+def test_collect_uses_only_configured_latest_listing_limit() -> None:
+    """V0.1 makes one bounded request and never seeks replacement listings."""
     transport = FakeTransport([_run(), []])
     result = ApifyKleinanzeigenCollector(SEARCH, COLLECTION, APIFY, transport).collect()
-    assert result.requested_count == 20
-    assert transport.calls[0][2] == {"searchUrl": SEARCH.search_url, "maxItems": 20}
+    assert result.requested_count == 5
+    assert transport.calls[0][2] == {"searchUrl": SEARCH.search_url, "maxItems": 5}
+    assert len(transport.calls) == 2
 
 
 def test_collect_allows_zero_results(caplog: pytest.LogCaptureFixture) -> None:
     """A valid empty dataset remains visible as a warning, not a fabricated success."""
     transport = FakeTransport([_run(), []])
-    result = ApifyKleinanzeigenCollector(SEARCH, COLLECTION, APIFY, transport).collect(5)
+    result = ApifyKleinanzeigenCollector(SEARCH, COLLECTION, APIFY, transport).collect()
     assert result.received_count == 0
     assert "zero items" in caplog.text
 
@@ -79,21 +80,15 @@ def test_collect_rejects_malformed_dataset() -> None:
     """Non-array dataset payloads fail closed."""
     transport = FakeTransport([_run(), {"not": "a dataset"}])
     with pytest.raises(CollectorError, match="JSON array"):
-        ApifyKleinanzeigenCollector(SEARCH, COLLECTION, APIFY, transport).collect(5)
+        ApifyKleinanzeigenCollector(SEARCH, COLLECTION, APIFY, transport).collect()
 
 
 def test_collect_rejects_failed_actor_status() -> None:
     """Actor failures do not proceed to a dataset request."""
     transport = FakeTransport([_run("FAILED")])
     with pytest.raises(CollectorError, match="without success"):
-        ApifyKleinanzeigenCollector(SEARCH, COLLECTION, APIFY, transport).collect(5)
+        ApifyKleinanzeigenCollector(SEARCH, COLLECTION, APIFY, transport).collect()
     assert len(transport.calls) == 1
-
-
-def test_collect_rejects_invalid_requested_count() -> None:
-    """The collector rejects unsafe acquisition limits before transport work."""
-    with pytest.raises(CollectorError, match="positive integer"):
-        ApifyKleinanzeigenCollector(SEARCH, COLLECTION, APIFY, FakeTransport([])).collect(0)
 
 
 def test_configuration_requires_apify_settings(tmp_path: Path) -> None:

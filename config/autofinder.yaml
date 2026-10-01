@@ -8,8 +8,7 @@ search:
   search_url: "https://www.kleinanzeigen.de/s-autos/27449/sortierung:neuste/preis:50:3000/c216l2709r50+autos.km_i:0%2C200000+autos.power_i:65%2C200+autos.schaden_s:nein"
 
 collection:
-  max_new_listings_per_run: 5
-  acquisition_batch_size: 20
+  listings_per_run: 5
 
 apify:
   actor_id: "rKEiEgI8vfyKcaBUj"

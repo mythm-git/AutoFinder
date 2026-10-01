@@ -11,12 +11,8 @@ class ListingCollector(ABC):
     """Collect raw marketplace evidence without downstream business decisions."""
 
     @abstractmethod
-    def collect(self, requested_count: int | None = None) -> CollectionResult:
-        """Collect a bounded newest-first raw marketplace batch.
-
-        Args:
-            requested_count: Optional acquisition limit overriding the collector
-                default. It is independent of later unseen-listing limits.
+    def collect(self) -> CollectionResult:
+        """Collect the configured bounded newest-first raw marketplace batch.
 
         Returns:
             Raw evidence and safe collection metadata.

@@ -4,8 +4,7 @@
 
 - `scheduler.interval_minutes`: future external scheduler cadence.
 - `search`: marketplace, postal code, radius, and exact Kleinanzeigen search URL.
-- `collection.max_new_listings_per_run`: future maximum unseen listings entering the pipeline.
-- `collection.acquisition_batch_size`: default maximum newest records requested by the collector; it is deliberately independent from the unseen-listing limit.
+- `collection.listings_per_run`: number of newest listings requested each v0.1 run. The initial value is 5.
 - `apify.actor_id`: verified non-secret Actor ID.
 - `apify.timeout_seconds`: end-to-end actor collection timeout.
 - `filters` and `ai`: future pipeline configuration, not implemented business behavior.
@@ -16,7 +15,7 @@ The current verified actor accepts an input object with exactly the relevant fie
 {"searchUrl": "<configured Kleinanzeigen URL>", "maxItems": 5}
 ```
 
-The collector never uses `startUrls`. For a live smoke check, pass `--max-items 5`; do not repeatedly call Apify while debugging downstream code.
+The collector never uses `startUrls`. For a live smoke check, run the smoke script without a count override; it uses the configured v0.1 limit. Do not repeatedly call Apify while debugging downstream code.
 
 `config/logging.yaml` controls level and rotation limits. Configuration errors fail visibly.
 

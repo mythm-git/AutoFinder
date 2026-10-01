@@ -82,12 +82,8 @@ class ApifyKleinanzeigenCollector(ListingCollector):
         self._transport = transport or UrllibApifyTransport(_load_apify_token())
         self._logger = logging.getLogger("autofinder.collectors.apify_kleinanzeigen")
 
-    def collect(self, requested_count: int | None = None) -> CollectionResult:
+    def collect(self) -> CollectionResult:
         """Run the configured actor and retrieve its raw default dataset.
-
-        Args:
-            requested_count: Positive actor ``maxItems`` override. If omitted,
-                ``collection.acquisition_batch_size`` is used.
 
         Returns:
             Raw listing evidence and validated safe run metadata.
@@ -96,7 +92,7 @@ class ApifyKleinanzeigenCollector(ListingCollector):
             CollectorError: If the request is invalid, the actor fails/times out, or
                 its run/dataset response cannot be validated.
         """
-        limit = _positive_requested_count(requested_count if requested_count is not None else self._collection.acquisition_batch_size)
+        limit = self._collection.listings_per_run
         self._logger.info("Apify collection started: marketplace=%s requested_count=%s postal_code=%s radius_km=%s", self._search.marketplace, limit, self._search.postal_code, self._search.radius_km)
         run = self._start_and_wait(limit)
         run_data = _mapping(run, "Apify run response")
@@ -149,13 +145,6 @@ def _load_apify_token() -> str:
     if not token:
         raise ApifyConfigurationError("APIFY_API_TOKEN is not configured.")
     return token
-
-
-def _positive_requested_count(value: int | None) -> int:
-    """Validate an explicit positive acquisition limit."""
-    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
-        raise CollectorError("requested_count must be a positive integer.")
-    return value
 
 
 def _mapping(value: Any, label: str) -> dict[str, Any]:

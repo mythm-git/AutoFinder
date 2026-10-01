@@ -6,7 +6,7 @@
 - Added typed Apify configuration, safe credential loading, API response validation, timeouts, and safe collection metadata.
 - Preserved raw Apify listing mappings through `RawMarketplaceListing` and `CollectionResult`.
 - Added sanitized fixture-based collector tests and a bounded optional live smoke-test script.
-- Documented verified `searchUrl`/`maxItems` actor input and the distinction between acquisition and unseen-listing limits.
+- Documented verified `searchUrl`/`maxItems` actor input and the configurable v0.1 latest-listings limit.
 
 ## 2.0.0 — Project Foundation
 
