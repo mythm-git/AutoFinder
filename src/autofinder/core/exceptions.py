@@ -56,10 +56,24 @@ class AIRequestError(AIError):
 class AIProviderError(AIError):
     """Raised for one safely classified provider attempt failure."""
 
-    def __init__(self, message: str, *, kind: str = "provider_error", retryable: bool = True) -> None:
+    def __init__(
+        self,
+        message: str,
+        *,
+        kind: str = "provider_error",
+        retryable: bool = True,
+        stage: str = "provider_request",
+        exception_type: str | None = None,
+        status_code: int | None = None,
+        provider_code: str | None = None,
+    ) -> None:
         super().__init__(message)
         self.kind = kind
         self.retryable = retryable
+        self.stage = stage
+        self.exception_type = exception_type
+        self.status_code = status_code
+        self.provider_code = provider_code
 
 
 class AIResponseValidationError(AIProviderError):

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -15,10 +15,9 @@ class ProviderHealthResponse(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    status: str = Field(pattern="^ok$")
-    message: str = Field(min_length=1, max_length=120)
+    status: Literal["ok"]
+    message: str
     confidence: float = Field(ge=0, le=1)
-    checks: list[str] = Field(min_length=1, max_length=3)
 
 
 @dataclass(frozen=True)

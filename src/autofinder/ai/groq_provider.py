@@ -8,7 +8,9 @@ from typing import Any
 from groq import APIConnectionError, APIStatusError, APITimeoutError, Groq, InternalServerError, RateLimitError
 
 from autofinder.ai.credentials import load_api_key
+from autofinder.ai.diagnostics import error_details
 from autofinder.ai.models import AIUsageMetadata, ProviderResponse, StructuredAIRequest
+from autofinder.ai.schema_adapters import groq_strict_schema
 from autofinder.ai.provider import AIProvider
 from autofinder.core.exceptions import AIProviderError
 
@@ -30,17 +32,20 @@ class GroqProvider(AIProvider):
             completion = self._client.chat.completions.create(
                 model=self.model,
                 messages=[{"role": "system", "content": request.system_instructions}, {"role": "user", "content": request.user_content}],
-                response_format={"type": "json_schema", "json_schema": {"name": request.resolved_schema_name, "strict": True, "schema": request.json_schema}},
+                response_format={"type": "json_schema", "json_schema": {"name": request.resolved_schema_name, "strict": True, "schema": groq_strict_schema(request)}},
                 **({"max_completion_tokens": request.max_output_tokens} if request.max_output_tokens else {}),
             )
         except RateLimitError as error:
-            raise AIProviderError("Groq rate limit prevented the request.", kind="rate_limit") from error
-        except (APITimeoutError, APIConnectionError) as error:
-            raise AIProviderError("Groq transport timed out or was unavailable.", kind="timeout") from error
+            raise _provider_error(error, "rate_limit", retryable=True) from error
+        except APITimeoutError as error:
+            raise _provider_error(error, "timeout", retryable=True) from error
+        except APIConnectionError as error:
+            raise _provider_error(error, "transport", retryable=True) from error
         except InternalServerError as error:
-            raise AIProviderError("Groq server failed the request.", kind="server_error") from error
+            raise _provider_error(error, "server_error", retryable=True) from error
         except APIStatusError as error:
-            raise AIProviderError("Groq rejected the request.", kind="api_error", retryable=getattr(error, "status_code", 0) >= 500) from error
+            status, _, _ = error_details(error)
+            raise _provider_error(error, "api_error", retryable=(status or 0) >= 500) from error
         try:
             content = completion.choices[0].message.content
             if not isinstance(content, str) or not content.strip():
@@ -48,7 +53,13 @@ class GroqProvider(AIProvider):
             usage = getattr(completion, "usage", None)
             return ProviderResponse(self.name, str(getattr(completion, "model", self.model)), content, time.monotonic() - started, _usage(usage), _safe_text(getattr(completion, "id", None)), _safe_text(getattr(completion.choices[0], "finish_reason", None)))
         except (AttributeError, IndexError, TypeError, ValueError) as error:
-            raise AIProviderError("Groq response lacked structured content.", kind="invalid_response") from error
+            raise AIProviderError("Groq response lacked structured content.", kind="invalid_response", stage="response_handling", exception_type=type(error).__name__) from error
+
+
+def _provider_error(error: Any, kind: str, *, retryable: bool) -> AIProviderError:
+    """Preserve a redacted SDK diagnostic without retaining raw response bodies."""
+    status_code, provider_code, message = error_details(error)
+    return AIProviderError(message, kind=kind, retryable=retryable, stage="provider_request", exception_type=type(error).__name__, status_code=status_code, provider_code=provider_code)
 
 
 def _usage(value: Any) -> AIUsageMetadata | None:

@@ -1,5 +1,12 @@
 # Changelog
 
+
+## 2.5.2 — Structured AI Provider Verification
+
+- Added non-mutating provider-local schema adapters: Groq strict object closure and Gemini single-string `const` to `enum` compatibility.
+- Switched Gemini structured generation to the documented `google-genai` Interactions API request shape and added safe provider failure diagnostics.
+- Verified one bounded neutral live request for each configured provider with canonical local Pydantic validation and safe usage/latency metadata.
+
 ## 2.5.1 — Runtime Credential Loading Fix
 
 - Centralized explicit `<PROJECT_ROOT>/.env` loading in `autofinder.core.runtime`, independent of the current working directory.

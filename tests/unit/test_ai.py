@@ -4,23 +4,27 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Literal
 from types import SimpleNamespace
 
 import pytest
 from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ValidationError
 
 from autofinder.ai.credentials import load_api_key
+from autofinder.ai.diagnostics import error_details
 from autofinder.ai.gemini_provider import GeminiProvider
 from autofinder.ai.groq_provider import GroqProvider
 from autofinder.ai.manager import AIManager
 from autofinder.ai.models import AIUsageMetadata, ProviderHealthResponse, ProviderResponse, StructuredAIRequest
 from autofinder.ai.provider import AIProvider
+from autofinder.ai.schema_adapters import gemini_schema, groq_strict_schema
 from autofinder.core.config import load_config
 from autofinder.core.exceptions import AIAllProvidersFailed, AIConfigurationError, AIProviderError, AIRequestError
 
 
 CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / "autofinder.yaml"
-VALID = json.dumps({"status": "ok", "message": "structured response working", "confidence": 1.0, "checks": ["schema"]})
+VALID = json.dumps({"status": "ok", "message": "structured response working", "confidence": 1.0})
 
 
 class FakeProvider(AIProvider):
@@ -96,7 +100,7 @@ def test_retryable_primary_failure_uses_gemini(ai_request: StructuredAIRequest, 
     assert result.attempts[0].error_kind == kind
 
 
-@pytest.mark.parametrize("content", ["not json", '{"status":"ok"}', '{"status":"wrong","message":"x","confidence":2,"checks":[]}'])
+@pytest.mark.parametrize("content", ["not json", '{"status":"ok"}', '{"status":"wrong","message":"x","confidence":2}'])
 def test_invalid_provider_output_falls_back(ai_request: StructuredAIRequest, content: str) -> None:
     result = AIManager({"groq": FakeProvider("groq", [response("groq", content)]), "gemini": FakeProvider("gemini", [response("gemini")])}, "groq", "gemini", 0).generate_structured(ai_request)
     assert result.provider == "gemini" and result.fallback_used
@@ -130,11 +134,13 @@ def test_groq_adapter_translates_canonical_ai_request_and_usage(ai_request: Stru
 
 def test_gemini_adapter_translates_canonical_ai_request_and_allows_missing_usage(ai_request: StructuredAIRequest) -> None:
     captured: dict[str, object] = {}
-    api_response = SimpleNamespace(text=VALID, usage_metadata=None, response_id="gemini-safe", candidates=[SimpleNamespace(finish_reason="STOP")])
-    client = SimpleNamespace(models=SimpleNamespace(generate_content=lambda **kwargs: captured.update(kwargs) or api_response))
+    interaction = SimpleNamespace(output_text=VALID, usage_metadata=None, id="gemini-safe", status="completed")
+    client = SimpleNamespace(interactions=SimpleNamespace(create=lambda **kwargs: captured.update(kwargs) or interaction))
     result = GeminiProvider("configured-gemini", 12, client=client).generate_structured(ai_request)
     assert captured["model"] == "configured-gemini"
-    assert result.usage is None and result.finish_reason == "STOP"
+    assert captured["response_format"]["mime_type"] == "application/json"  # type: ignore[index]
+    assert captured["response_format"]["schema"]["properties"]["status"]["enum"] == ["ok"]  # type: ignore[index]
+    assert result.usage is None and result.finish_reason == "completed"
 
 
 def test_logs_do_not_include_provider_error_detail(ai_request: StructuredAIRequest, caplog: pytest.LogCaptureFixture) -> None:
@@ -154,3 +160,85 @@ def test_same_ai_request_contract_can_use_either_provider() -> None:
     for provider_name in ("groq", "gemini"):
         result = AIManager({"groq": FakeProvider("groq", [response("groq", '{"value":1}')]), "gemini": FakeProvider("gemini", [response("gemini", '{"value":1}')])}, provider_name, "gemini" if provider_name == "groq" else "groq", 0).generate_structured(ai_request)
         assert result.payload == {"value": 1}
+
+
+
+class NestedDetail(BaseModel):
+    label: str
+    optional_count: int | None = None
+
+
+class NestedSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    status: str
+    detail: NestedDetail
+    tags: list[str]
+
+
+def test_groq_strict_schema_closes_every_object_without_mutating_canonical_model() -> None:
+    ai_request = StructuredAIRequest("nested", "system", "user", NestedSchema)
+    canonical = ai_request.json_schema
+    adapted = groq_strict_schema(ai_request)
+    assert canonical != adapted
+    assert "additionalProperties" not in canonical["$defs"]["NestedDetail"]
+    assert adapted["additionalProperties"] is False
+    assert adapted["required"] == ["status", "detail", "tags"]
+    nested = adapted["$defs"]["NestedDetail"]
+    assert nested["additionalProperties"] is False
+    assert nested["required"] == ["label", "optional_count"]
+    assert nested["properties"]["optional_count"]["anyOf"][1]["type"] == "null"
+
+
+def test_safe_provider_diagnostics_preserve_codes_without_secrets() -> None:
+    groq_like_key = "gsk" + "_super_secret"
+    gemini_like_key = "AI" + "zaSuperSecret"
+    unsafe_message = f"Bearer {groq_like_key} api_key={gemini_like_key}"
+    error = SimpleNamespace(status_code=400, body={"error": {"code": "schema_invalid", "message": unsafe_message}}, message=unsafe_message)
+    status, code, message = error_details(error)
+    assert (status, code) == (400, "schema_invalid")
+    assert groq_like_key not in message and gemini_like_key not in message
+
+
+
+class GeminiNestedDetail(BaseModel):
+    fixed_state: Literal["nested_ok"]
+    category: Literal["repair", "market"]
+    confidence: float = Field(ge=0, le=1)
+    note: str | None = None
+
+
+class GeminiCompatibilitySchema(BaseModel):
+    detail: GeminiNestedDetail
+    related: list[GeminiNestedDetail]
+
+
+def test_gemini_schema_replaces_single_string_const_without_mutating_canonical_schema() -> None:
+    ai_request = StructuredAIRequest("gemini_schema", "system", "user", ProviderHealthResponse)
+    canonical_before = ai_request.json_schema
+    adapted = gemini_schema(ai_request)
+    canonical_after = ai_request.json_schema
+    assert canonical_before == canonical_after
+    assert canonical_before["properties"]["status"]["const"] == "ok"
+    assert adapted["properties"]["status"].get("const") is None
+    assert adapted["properties"]["status"] == {"enum": ["ok"], "title": "Status", "type": "string"}
+
+
+def test_gemini_schema_preserves_supported_constraints_recursively() -> None:
+    ai_request = StructuredAIRequest("gemini_nested", "system", "user", GeminiCompatibilitySchema)
+    canonical_before = ai_request.json_schema
+    adapted = gemini_schema(ai_request)
+    nested = adapted["$defs"]["GeminiNestedDetail"]
+    assert canonical_before == ai_request.json_schema
+    assert nested["properties"]["fixed_state"].get("const") is None
+    assert nested["properties"]["fixed_state"]["enum"] == ["nested_ok"]
+    assert nested["properties"]["category"]["enum"] == ["repair", "market"]
+    assert nested["properties"]["confidence"]["minimum"] == 0
+    assert nested["properties"]["confidence"]["maximum"] == 1
+    assert nested["properties"]["note"]["anyOf"][1]["type"] == "null"
+    assert adapted["properties"]["related"]["items"]["$ref"] == "#/$defs/GeminiNestedDetail"
+
+
+def test_canonical_provider_health_validation_remains_strict() -> None:
+    assert ProviderHealthResponse.model_validate_json(VALID).status == "ok"
+    with pytest.raises(ValidationError):
+        ProviderHealthResponse.model_validate_json('{"status":"operational","message":"x","confidence":1}')
