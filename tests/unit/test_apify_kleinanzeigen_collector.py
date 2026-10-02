@@ -102,7 +102,6 @@ def test_configuration_requires_apify_settings(tmp_path: Path) -> None:
 
 def test_missing_token_and_transport_error_do_not_expose_token(monkeypatch: pytest.MonkeyPatch) -> None:
     """Credential failures and HTTP failures redact representative token material."""
-    monkeypatch.setattr("autofinder.collectors.apify_kleinanzeigen.load_dotenv", lambda: None)
     monkeypatch.delenv("APIFY_API_TOKEN", raising=False)
     with pytest.raises(ApifyConfigurationError) as missing:
         ApifyKleinanzeigenCollector(SEARCH, COLLECTION, APIFY)

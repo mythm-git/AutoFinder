@@ -4,15 +4,14 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Protocol
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-from dotenv import load_dotenv
-
-from autofinder.core.exceptions import TelegramError
+from autofinder.core.exceptions import RuntimeCredentialError, TelegramError
+from autofinder.core.runtime import load_project_environment, required_environment_value
 
 
 class TelegramTransport(Protocol):
@@ -41,18 +40,17 @@ class TelegramClient:
         self._logger = logging.getLogger("autofinder.notifications.telegram")
 
     @classmethod
-    def from_environment(cls) -> "TelegramClient":
-        """Create a client from local ``.env``/environment values.
+    def from_project_environment(cls, project_root: Path) -> "TelegramClient":
+        """Load the explicit project-root environment and create a Telegram client.
 
         Raises:
             TelegramError: If required credential names are missing or blank.
         """
-        load_dotenv()
-        token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
-        chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
-        if not token or not chat_id:
-            raise TelegramError("Telegram is not configured: TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are required.")
-        return cls(TelegramSettings(bot_token=token, chat_id=chat_id))
+        load_project_environment(project_root)
+        try:
+            return cls(TelegramSettings(required_environment_value("TELEGRAM_BOT_TOKEN"), required_environment_value("TELEGRAM_CHAT_ID")))
+        except RuntimeCredentialError as error:
+            raise TelegramError("Telegram is not configured: TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are required.") from error
 
     def send_text(self, text: str, parse_mode: str | None = None) -> None:
         """Send one bounded non-empty text message.

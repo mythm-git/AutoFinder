@@ -25,6 +25,6 @@ All provider calls are time-bounded. Token metadata is captured only when the SD
 
 ## Security and scope
 
-Keys are read by name from the ignored local environment only: `GROQ_API_KEY` and `GEMINI_API_KEY`. They are not written to YAML, logs, exceptions, fixtures, smoke output, documentation examples, or Git. Normal tests use injected fakes and make zero network calls. `scripts/smoke_ai_provider.py groq` and `scripts/smoke_ai_provider.py gemini` are explicit one-request neutral health checks.
+Keys are read by name from the ignored local environment only: `GROQ_API_KEY` and `GEMINI_API_KEY`. The central runtime loader explicitly loads `<PROJECT_ROOT>/.env` before adapters retrieve a key by name; adapters never perform dotenv discovery. Keys are not written to YAML, logs, exceptions, fixtures, smoke output, documentation examples, or Git. Normal tests use injected fakes and make zero network calls. `scripts/smoke_ai_provider.py groq` and `scripts/smoke_ai_provider.py gemini` are explicit one-request neutral health checks.
 
 Step 6 intentionally defines no vehicle condition, repair, valuation, resale, ROI, candidate-scoring, or runtime reporting prompt. Those require a later approved schema and evidence boundary.

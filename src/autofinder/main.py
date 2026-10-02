@@ -9,8 +9,9 @@ import yaml
 
 from autofinder.core.config import load_config
 from autofinder.core.logging import configure_logging
+from autofinder.core.runtime import load_project_environment, resolve_project_root
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = resolve_project_root()
 
 
 def main() -> int:
@@ -20,6 +21,7 @@ def main() -> int:
         ``0`` on successful foundation startup; configuration errors propagate to
         make startup failures visible to the scheduler.
     """
+    load_project_environment(PROJECT_ROOT)
     logging_settings = _load_logging_settings(PROJECT_ROOT / "config" / "logging.yaml")
     logger = configure_logging(
         PROJECT_ROOT / "logs",

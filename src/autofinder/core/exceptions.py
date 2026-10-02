@@ -9,6 +9,10 @@ class ConfigurationError(AutoFinderError):
     """Raised when non-secret application configuration is invalid."""
 
 
+class RuntimeCredentialError(ConfigurationError):
+    """Raised safely when a required project-root environment variable is unavailable."""
+
+
 class TelegramError(AutoFinderError):
     """Raised when a Telegram notification cannot be delivered."""
 

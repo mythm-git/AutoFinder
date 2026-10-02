@@ -62,7 +62,6 @@ def test_ai_configuration_is_typed_and_rejects_unknown_provider(tmp_path: Path) 
 
 
 def test_missing_api_keys_are_safe(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("autofinder.ai.credentials.load_dotenv", lambda: None)
     monkeypatch.delenv("GROQ_API_KEY", raising=False)
     with pytest.raises(AIConfigurationError, match="GROQ_API_KEY"):
         load_api_key("GROQ_API_KEY")

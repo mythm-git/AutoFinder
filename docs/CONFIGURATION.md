@@ -34,7 +34,7 @@ Filtering runs only after a valid unseen listing has been persisted. Price, URL,
 
 `config/logging.yaml` controls level and rotation limits. Configuration errors fail visibly. The seen-state path must remain project-relative.
 
-`.env` contains local credentials only: Telegram, Apify, Groq, and Gemini names are documented in `.env.example`. AutoFinder may securely load individual environment values at runtime; developers/tools must never print, log, commit, copy, rename, recreate, or expose secret values. Secrets never belong in YAML, source code, logs, test fixtures, or documentation.
+`.env` contains local credentials only: Telegram, Apify, Groq, and Gemini names are documented in `.env.example`. `autofinder.core.runtime.load_project_environment(project_root)` is the sole loader: it explicitly loads `<project_root>/.env` and preserves already-injected process values for n8n/deployments. `resolve_project_root()` prefers explicit `AUTOFINDER_PROJECT_ROOT`, then a source-tree root, and only then an upward `config/autofinder.yaml` search for local invocation; it never relies solely on the current working directory. Main, provider smoke scripts, the Apify smoke script, and the development reporter pass their established `PROJECT_ROOT` to this loader. Services then retrieve individual required names without performing their own dotenv discovery. Developers/tools must never print, log, commit, copy, rename, recreate, or expose secret values. Secrets never belong in YAML, source code, logs, test fixtures, or documentation.
 
 ## Seen-listing state
 

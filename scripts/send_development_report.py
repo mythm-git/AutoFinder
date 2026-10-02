@@ -7,9 +7,13 @@ never send messages to a real Telegram group.
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 
 from autofinder.notifications.development_reporter import DevelopmentReport, DevelopmentReporter
 from autofinder.notifications.telegram import TelegramClient
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> int:
@@ -31,7 +35,7 @@ def main() -> int:
         git_commit=args.commit,
         next_step=args.next_step,
     )
-    DevelopmentReporter(TelegramClient.from_environment()).send(report)
+    DevelopmentReporter(TelegramClient.from_project_environment(PROJECT_ROOT)).send(report)
     return 0
 
 

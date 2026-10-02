@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.5.1 — Runtime Credential Loading Fix
+
+- Centralized explicit `<PROJECT_ROOT>/.env` loading in `autofinder.core.runtime`, independent of the current working directory.
+- Routed main, provider/Apify smoke scripts, and development reporting through the shared loader; individual integrations now only retrieve already-loaded named credentials.
+
 ## 2.5.0 — Provider-Agnostic AI Infrastructure
 
 - Added a Pydantic-backed canonical structured-output contract, Groq primary adapter, Gemini fallback adapter, local validation, bounded retries, timeout configuration, and safe usage/latency metadata.

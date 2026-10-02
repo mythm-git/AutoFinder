@@ -10,6 +10,7 @@ from autofinder.ai.groq_provider import GroqProvider
 from autofinder.ai.models import ProviderHealthResponse, StructuredAIRequest
 from autofinder.core.config import load_config
 from autofinder.core.exceptions import AIError
+from autofinder.core.runtime import load_project_environment
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +21,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run one provider-specific AutoFinder AI smoke test.")
     parser.add_argument("provider", choices=("groq", "gemini"))
     args = parser.parse_args()
+    load_project_environment(PROJECT_ROOT)
     config = load_config(PROJECT_ROOT / "config" / "autofinder.yaml")
     request = StructuredAIRequest(
         purpose="provider_health_smoke",

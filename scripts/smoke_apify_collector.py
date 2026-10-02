@@ -10,6 +10,7 @@ from pathlib import Path
 from autofinder.collectors.apify_kleinanzeigen import ApifyKleinanzeigenCollector
 from autofinder.core.config import load_config
 from autofinder.core.logging import configure_logging
+from autofinder.core.runtime import load_project_environment
 from autofinder.main import _load_logging_settings
 
 
@@ -21,6 +22,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run a bounded Apify collector smoke test.")
     parser.add_argument("--cache", action="store_true", help="Save successful raw evidence under ignored data/cache/.")
     args = parser.parse_args()
+    load_project_environment(PROJECT_ROOT)
     logging_settings = _load_logging_settings(PROJECT_ROOT / "config" / "logging.yaml")
     configure_logging(PROJECT_ROOT / "logs", logging_settings["level"], logging_settings["max_bytes"], logging_settings["backup_count"])
     config = load_config(PROJECT_ROOT / "config" / "autofinder.yaml")

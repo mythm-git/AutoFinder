@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import time
 from datetime import UTC, datetime
 from typing import Any, Protocol
@@ -17,11 +16,10 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
-from dotenv import load_dotenv
-
 from autofinder.collectors.base import ListingCollector
 from autofinder.core.config import ApifyConfig, CollectionConfig, SearchConfig
-from autofinder.core.exceptions import ApifyConfigurationError, ApifyTransportError, CollectorError
+from autofinder.core.exceptions import ApifyConfigurationError, ApifyTransportError, CollectorError, RuntimeCredentialError
+from autofinder.core.runtime import required_environment_value
 from autofinder.models.collection import CollectionResult, RawMarketplaceListing
 
 
@@ -140,11 +138,10 @@ def _load_apify_token() -> str:
     Raises:
         ApifyConfigurationError: If APIFY_API_TOKEN is absent or blank.
     """
-    load_dotenv()
-    token = os.getenv("APIFY_API_TOKEN", "").strip()
-    if not token:
-        raise ApifyConfigurationError("APIFY_API_TOKEN is not configured.")
-    return token
+    try:
+        return required_environment_value("APIFY_API_TOKEN")
+    except RuntimeCredentialError as error:
+        raise ApifyConfigurationError("APIFY_API_TOKEN is not configured.") from error
 
 
 def _mapping(value: Any, label: str) -> dict[str, Any]:
