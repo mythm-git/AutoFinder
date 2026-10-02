@@ -74,11 +74,22 @@ class FiltersConfig:
 
 
 @dataclass(frozen=True)
+class AIProviderConfig:
+    """Non-secret provider model selection."""
+
+    model: str
+
+
+@dataclass(frozen=True)
 class AIConfig:
-    """Provider preference for future interchangeable AI integrations."""
+    """Bounded provider selection and delivery settings for structured AI work."""
 
     primary_provider: str
     fallback_provider: str
+    timeout_seconds: int
+    max_retries_per_provider: int
+    groq: AIProviderConfig
+    gemini: AIProviderConfig
 
 
 @dataclass(frozen=True)
@@ -155,20 +166,45 @@ def _build_config(payload: dict[str, Any]) -> AppConfig:
             reject_dealers=_bool(filters["reject_dealers"], "filters.reject_dealers"),
             dealer_text_indicators=_nonempty_string_tuple(filters["dealer_text_indicators"], "filters.dealer_text_indicators"),
         ),
-        ai=AIConfig(
-            primary_provider=_nonempty_string(ai["primary_provider"], "ai.primary_provider"),
-            fallback_provider=_nonempty_string(ai["fallback_provider"], "ai.fallback_provider"),
-        ),
+        ai=_ai_config(ai),
     )
     if config.filters.price.minimum > config.filters.price.maximum:
         raise ValueError("filters.price minimum cannot exceed maximum")
     return config
 
 
+def _ai_config(value: Any) -> AIConfig:
+    """Validate the supported providers and bounded request settings."""
+    if not isinstance(value, dict):
+        raise ValueError("ai must be a mapping")
+    primary = _nonempty_string(value["primary_provider"], "ai.primary_provider").lower()
+    fallback = _nonempty_string(value["fallback_provider"], "ai.fallback_provider").lower()
+    supported = {"groq", "gemini"}
+    if primary not in supported or fallback not in supported:
+        raise ValueError("ai providers must be groq or gemini")
+    if primary == fallback:
+        raise ValueError("ai primary_provider and fallback_provider must differ")
+    return AIConfig(
+        primary_provider=primary,
+        fallback_provider=fallback,
+        timeout_seconds=_positive_int(value["timeout_seconds"], "ai.timeout_seconds"),
+        max_retries_per_provider=_nonnegative_int(value["max_retries_per_provider"], "ai.max_retries_per_provider"),
+        groq=AIProviderConfig(model=_nonempty_string(value["groq"]["model"], "ai.groq.model")),
+        gemini=AIProviderConfig(model=_nonempty_string(value["gemini"]["model"], "ai.gemini.model")),
+    )
+
+
 def _positive_int(value: Any, field: str) -> int:
     """Validate a positive integer while excluding booleans."""
     if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
         raise ValueError(f"{field} must be a positive integer")
+    return value
+
+
+def _nonnegative_int(value: Any, field: str) -> int:
+    """Validate a non-negative integer while excluding booleans."""
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ValueError(f"{field} must be a non-negative integer")
     return value
 
 

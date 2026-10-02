@@ -1,15 +1,19 @@
-"""Stable contract for future AI provider integrations."""
+"""Stable contract for provider-specific structured-output adapters."""
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+
+from autofinder.ai.models import ProviderResponse, StructuredAIRequest
 
 
 class AIProvider(ABC):
-    """Provide uncertain vehicle interpretation without owning deal arithmetic."""
+    """Translate one canonical request into one provider's structured API call."""
+
+    name: str
+    model: str
 
     @abstractmethod
-    def analyze(self, listing: dict[str, Any]) -> dict[str, Any]:
-        """Return structured AI output for a normalized listing."""
+    def generate_structured(self, request: StructuredAIRequest) -> ProviderResponse:
+        """Return a sanitized provider response or a classified ``AIProviderError``."""
         raise NotImplementedError

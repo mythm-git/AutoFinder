@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.5.0 — Provider-Agnostic AI Infrastructure
+
+- Added a Pydantic-backed canonical structured-output contract, Groq primary adapter, Gemini fallback adapter, local validation, bounded retries, timeout configuration, and safe usage/latency metadata.
+- Added fixture-only provider/fallback tests plus an explicit one-shot neutral provider smoke-test utility.
+- Deliberately excluded all car-analysis prompts, valuation, repair, financial, and runtime reporting logic.
+
+
 ## 2.4.0 — Canonical Listing Normalization
 
 - Added the canonical `NormalizedListing` domain model and an Apify-to-domain normalizer.

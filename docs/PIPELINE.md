@@ -1,6 +1,6 @@
 # Planned pipeline
 
-The implemented boundary is now: Apify latest five → minimal identity extraction → persistent early deduplication → full canonical normalization → deterministic basic filters. If deduplication finds zero unseen listings, normalization and filtering do no work and the run is a successful no-op. AI, valuation, financial calculations, and reporting remain future stages.
+The implemented boundaries are now: Apify latest five → minimal identity extraction → persistent early deduplication → full canonical normalization → deterministic basic filters → provider-agnostic AI infrastructure. If deduplication finds zero unseen listings, normalization and filtering do no work and the run is a successful no-op. The AI infrastructure is not wired into the runtime and contains no car analysis; valuation, financial calculations, and reporting remain future stages.
 
 This document describes intent, not a completed runtime pipeline.
 
@@ -13,8 +13,9 @@ This document describes intent, not a completed runtime pipeline.
 7. If all five are already known, the run ends successfully with zero downstream processing; it does not search deeper for replacements.
 8. `BasicDealFilter` applies configured deterministic URL, price, seller, dealer-text, mileage, and power checks without changing raw evidence.
 9. Rejected listings remain seen; missing optional mileage/power create warnings rather than rejection.
-10. Future AI later interprets uncertainty, condition, repair inputs, resale ranges, confidence, and risks for passed listings only.
-11. Python later performs final financial arithmetic and deal threshold checks.
-12. A future runtime/deal reporter emits candidate alerts.
+10. `AIManager` is available for future downstream code: Groq is primary and Gemini is the classified-failure fallback; it returns only locally validated structured data.
+11. Future vehicle analysis later defines which normalized evidence is sent and which condition/repair/valuation schema is requested.
+12. Future Python performs final financial arithmetic and deal threshold checks.
+13. A future runtime/deal reporter emits candidate alerts.
 
-Collection, persistent early deduplication, and deterministic filtering are implemented. Normalization, AI, valuation, arithmetic, and deal evaluation are not.
+Collection, persistent early deduplication, normalization, deterministic filtering, and generic AI provider infrastructure are implemented. Vehicle analysis, valuation, arithmetic, and deal evaluation are not.

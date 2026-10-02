@@ -35,3 +35,32 @@ class SeenStateError(AutoFinderError):
 
 class NormalizationError(AutoFinderError):
     """Raised when source data cannot safely form a canonical normalized listing."""
+
+
+class AIError(AutoFinderError):
+    """Base exception for expected provider-agnostic AI failures."""
+
+
+class AIConfigurationError(AIError):
+    """Raised when non-secret AI settings or required local credentials are invalid."""
+
+
+class AIRequestError(AIError):
+    """Raised before dispatch when a provider-neutral request is invalid."""
+
+
+class AIProviderError(AIError):
+    """Raised for one safely classified provider attempt failure."""
+
+    def __init__(self, message: str, *, kind: str = "provider_error", retryable: bool = True) -> None:
+        super().__init__(message)
+        self.kind = kind
+        self.retryable = retryable
+
+
+class AIResponseValidationError(AIProviderError):
+    """Raised when a provider response cannot satisfy the canonical schema."""
+
+
+class AIAllProvidersFailed(AIError):
+    """Raised after primary and permitted fallback attempts have failed."""

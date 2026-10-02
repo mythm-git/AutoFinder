@@ -15,7 +15,10 @@ Normalization has no changing business thresholds. It maps only verified source 
 - `filters.price`, `filters.mileage`, and `filters.power`: inclusive deterministic bounds checked internally.
 - `filters.reject_dealers`: enables structured seller and configured text-indicator rejection.
 - `filters.dealer_text_indicators`: normalized case-insensitive exact phrases checked only when dealer rejection is enabled.
-- `ai`: future pipeline configuration, not implemented business behavior.
+- `ai.primary_provider` / `ai.fallback_provider`: the two supported provider names, `groq` then `gemini`.
+- `ai.timeout_seconds`: timeout passed to both official SDKs; the committed value is 60 seconds.
+- `ai.max_retries_per_provider`: bounded retries after clearly transient provider failures; the committed value is 1.
+- `ai.groq.model` / `ai.gemini.model`: non-secret, editable provider model identifiers. See `AI_PROVIDERS.md` for selected models and API details.
 
 The current verified actor accepts an input object with exactly the relevant fields:
 

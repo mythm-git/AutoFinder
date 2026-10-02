@@ -39,3 +39,9 @@ filters:
 ai:
   primary_provider: "groq"
   fallback_provider: "gemini"
+  timeout_seconds: 60
+  max_retries_per_provider: 1
+  groq:
+    model: "openai/gpt-oss-120b"
+  gemini:
+    model: "gemini-3.8-flash"

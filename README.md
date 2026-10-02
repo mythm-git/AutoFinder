@@ -4,7 +4,7 @@ AutoFinder searches for potentially profitable used cars. This is a new, local-f
 
 ## Current status
 
-Step 5 adds canonical listing normalization after early deduplication. `ApifyKleinanzeigenNormalizer` is the only boundary that maps verified source fields into `NormalizedListing`; `BasicDealFilter` now consumes that domain model rather than Apify payload paths. Raw source evidence remains preserved, and missing optional facts remain `None` with warnings.
+Step 6 adds provider-agnostic structured AI infrastructure only. `AIManager` sends one canonical Pydantic-schema request to Groq first and Gemini only after a classified retryable failure. Provider responses are locally validated before being returned. No vehicle-analysis prompt, valuation, repair, ROI, or runtime AI pipeline has been added.
 
 Step 4 adds deterministic filtering after early deduplication. Configured price, structured/text dealer, mileage, power, URL, and identity rules emit stable reasons while preserving raw evidence. Listings that pass continue only to future AI work; no AI, valuation, ROI, or alerts exist yet.
 
