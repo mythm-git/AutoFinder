@@ -101,3 +101,7 @@ class AIValuationError(AIError):
 
 class FinancialAnalysisError(AutoFinderError):
     """Raised when validated monetary inputs cannot produce deterministic scenarios."""
+
+
+class DealEvaluationError(AutoFinderError):
+    """Raised when validated upstream evidence cannot be deterministically classified."""

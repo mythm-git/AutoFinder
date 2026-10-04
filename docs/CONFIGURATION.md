@@ -15,6 +15,7 @@ Normalization has no changing business thresholds. It maps only verified source 
 - `filters.price`, `filters.mileage`, and `filters.power`: inclusive deterministic bounds checked internally.
 - `filters.reject_dealers`: enables structured seller and configured text-indicator rejection.
 - `filters.dealer_text_indicators`: normalized case-insensitive exact phrases checked only when dealer rejection is enabled.
+- `deal_evaluation`: non-secret Step 10 decision-support policy. It defines the minimum expected ROI (20% initially), conservative ROI needed for a strong candidate, three independent 0.0–1.0 confidence thresholds, maximum risk allowed for strong classification (`low` or `medium`), and optional very-high-risk rejection. These are not AI prompts or purchase rules.
 - `ai.primary_provider` / `ai.fallback_provider`: the two supported provider names, `groq` then `gemini`.
 - `ai.timeout_seconds`: timeout passed to both official SDKs; the committed value is 60 seconds.
 - `ai.max_retries_per_provider`: bounded retries after clearly transient provider failures; the committed value is 1.

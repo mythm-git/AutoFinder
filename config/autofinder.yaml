@@ -36,6 +36,15 @@ filters:
     - "weitere fahrzeuge"
     - "verkaufsteam"
 
+deal_evaluation:
+  minimum_expected_roi_percent: 20.0
+  minimum_conservative_roi_for_strong_percent: 0.0
+  minimum_analysis_confidence: 0.60
+  minimum_repair_confidence: 0.55
+  minimum_valuation_confidence: 0.60
+  maximum_risk_for_strong: "medium"
+  reject_very_high_risk: true
+
 ai:
   primary_provider: "groq"
   fallback_provider: "gemini"

@@ -4,9 +4,9 @@ AutoFinder searches for potentially profitable used cars. This is a new, local-f
 
 ## Current status
 
-Step 9 adds a local-only `FinancialCalculator` over validated `NormalizedListing`, `RepairEstimate`, and `AIValuation` inputs. It deterministically produces conservative, expected, and optimistic post-repair scenarios with traceable full investment, profit, and ROI. It makes no AI or network calls and deliberately does not make a candidate/deal decision.
+Step 10 adds a local-only `DealEvaluator` over validated upstream evidence and `FinancialAnalysis`. It returns configurable, explainable `REJECT`, `REVIEW`, or `STRONG_CANDIDATE` decision-support states using expected ROI, conservative downside, risk, and separate confidence controls. It never makes an automatic purchase recommendation, AI call, or network call.
 
-Step 8 provides the evidence-grounded repair and temporary AI-only valuation inputs, while Step 7 remains their semantic vehicle-analysis boundary.
+Step 9 owns deterministic financial arithmetic; Step 8 provides evidence-grounded repair and temporary AI-only valuation inputs; Step 7 remains their semantic vehicle-analysis boundary.
 
 ## Local setup and run
 

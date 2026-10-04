@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.9.0 — Deterministic Deal Evaluation
+
+- Added a pure local, configurable `DealEvaluator` with `REJECT`, `REVIEW`, and `STRONG_CANDIDATE` decision-support states.
+- Added expected-ROI/profit gates, conservative downside, risk, separate confidence controls, and stable machine-readable reason/warning codes.
+- Deliberately excluded AI calls, automatic purchasing, runtime Telegram alerts, and pipeline orchestration.
+
 ## 2.8.0 — Deterministic Financial Engine
 
 - Added local-only `FinancialCalculator` and canonical conservative, expected, and optimistic post-repair financial scenarios.

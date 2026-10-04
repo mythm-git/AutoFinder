@@ -23,6 +23,10 @@ def test_loads_expected_foundation_configuration() -> None:
     assert config.filters.mileage.minimum == 0
     assert config.filters.mileage.maximum == 200000
     assert "autohaus" in config.filters.dealer_text_indicators
+    assert config.deal_evaluation.minimum_expected_roi_percent == 20
+    assert config.deal_evaluation.minimum_conservative_roi_for_strong_percent == 0
+    assert config.deal_evaluation.maximum_risk_for_strong.value == "medium"
+    assert config.deal_evaluation.reject_very_high_risk is True
 
 
 def test_rejects_nonpositive_listings_per_run(tmp_path: Path) -> None:

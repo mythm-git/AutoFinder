@@ -7,8 +7,11 @@ local environment variables by the integrations that need them.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
+
+from autofinder.analysis.models import RiskLevel
 
 import yaml
 
@@ -74,6 +77,19 @@ class FiltersConfig:
 
 
 @dataclass(frozen=True)
+class DealEvaluationConfig:
+    """Explicit, non-secret deterministic policy settings for Step 10."""
+
+    minimum_expected_roi_percent: Decimal
+    minimum_conservative_roi_for_strong_percent: Decimal
+    minimum_analysis_confidence: float
+    minimum_repair_confidence: float
+    minimum_valuation_confidence: float
+    maximum_risk_for_strong: RiskLevel
+    reject_very_high_risk: bool
+
+
+@dataclass(frozen=True)
 class AIProviderConfig:
     """Non-secret provider model selection."""
 
@@ -102,6 +118,7 @@ class AppConfig:
     apify: ApifyConfig
     deduplication: DeduplicationConfig
     filters: FiltersConfig
+    deal_evaluation: DealEvaluationConfig
     ai: AIConfig
 
 
@@ -140,6 +157,7 @@ def _build_config(payload: dict[str, Any]) -> AppConfig:
     apify = payload["apify"]
     deduplication = payload["deduplication"]
     filters = payload["filters"]
+    deal_evaluation = payload["deal_evaluation"]
     ai = payload["ai"]
     config = AppConfig(
         scheduler=SchedulerConfig(interval_minutes=_positive_int(scheduler["interval_minutes"], "scheduler.interval_minutes")),
@@ -166,11 +184,30 @@ def _build_config(payload: dict[str, Any]) -> AppConfig:
             reject_dealers=_bool(filters["reject_dealers"], "filters.reject_dealers"),
             dealer_text_indicators=_nonempty_string_tuple(filters["dealer_text_indicators"], "filters.dealer_text_indicators"),
         ),
+        deal_evaluation=_deal_evaluation_config(deal_evaluation),
         ai=_ai_config(ai),
     )
     if config.filters.price.minimum > config.filters.price.maximum:
         raise ValueError("filters.price minimum cannot exceed maximum")
     return config
+
+
+def _deal_evaluation_config(value: Any) -> DealEvaluationConfig:
+    """Validate bounded, explicit Step 10 policy without secret settings."""
+    if not isinstance(value, dict):
+        raise ValueError("deal_evaluation must be a mapping")
+    maximum_risk = _risk_level(value["maximum_risk_for_strong"], "deal_evaluation.maximum_risk_for_strong")
+    if maximum_risk not in {RiskLevel.LOW, RiskLevel.MEDIUM}:
+        raise ValueError("deal_evaluation.maximum_risk_for_strong must be low or medium")
+    return DealEvaluationConfig(
+        minimum_expected_roi_percent=_decimal(value["minimum_expected_roi_percent"], "deal_evaluation.minimum_expected_roi_percent"),
+        minimum_conservative_roi_for_strong_percent=_decimal(value["minimum_conservative_roi_for_strong_percent"], "deal_evaluation.minimum_conservative_roi_for_strong_percent"),
+        minimum_analysis_confidence=_confidence(value["minimum_analysis_confidence"], "deal_evaluation.minimum_analysis_confidence"),
+        minimum_repair_confidence=_confidence(value["minimum_repair_confidence"], "deal_evaluation.minimum_repair_confidence"),
+        minimum_valuation_confidence=_confidence(value["minimum_valuation_confidence"], "deal_evaluation.minimum_valuation_confidence"),
+        maximum_risk_for_strong=maximum_risk,
+        reject_very_high_risk=_bool(value["reject_very_high_risk"], "deal_evaluation.reject_very_high_risk"),
+    )
 
 
 def _ai_config(value: Any) -> AIConfig:
@@ -192,6 +229,34 @@ def _ai_config(value: Any) -> AIConfig:
         groq=AIProviderConfig(model=_nonempty_string(value["groq"]["model"], "ai.groq.model")),
         gemini=AIProviderConfig(model=_nonempty_string(value["gemini"]["model"], "ai.gemini.model")),
     )
+
+
+def _decimal(value: Any, field: str) -> Decimal:
+    """Accept a finite non-boolean YAML number without binary-float comparison."""
+    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+        raise ValueError(f"{field} must be a finite number")
+    try:
+        result = Decimal(str(value))
+    except (InvalidOperation, ValueError) as error:
+        raise ValueError(f"{field} must be a finite number") from error
+    if not result.is_finite():
+        raise ValueError(f"{field} must be a finite number")
+    return result
+
+
+def _confidence(value: Any, field: str) -> float:
+    """Validate an inclusive confidence threshold."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value <= 1:
+        raise ValueError(f"{field} must be a number from 0.0 to 1.0")
+    return float(value)
+
+
+def _risk_level(value: Any, field: str) -> RiskLevel:
+    """Validate configuration against the existing controlled risk enum."""
+    try:
+        return RiskLevel(_nonempty_string(value, field).lower())
+    except ValueError as error:
+        raise ValueError(f"{field} must be a recognized risk level") from error
 
 
 def _positive_int(value: Any, field: str) -> int:
