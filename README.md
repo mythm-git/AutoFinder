@@ -4,9 +4,9 @@ AutoFinder searches for potentially profitable used cars. This is a new, local-f
 
 ## Current status
 
-Step 7 adds text/structured-data vehicle analysis for listings that already pass deterministic filters. `VehicleAnalyzer` builds a minimal evidence packet from `NormalizedListing`, calls only `AIManager` (Groq primary, Gemini fallback), and returns a locally validated `VehicleAnalysis`. It separates current faults, completed repairs, maintenance, seller claims, risks, and relevant missing information. It deliberately contains no repair prices, valuation, profit, ROI, scoring, images, or runtime pipeline wiring.
+Step 8 adds separate evidence-grounded `RepairEstimator` and temporary AI-only `AIValuator` services above validated Step 7 analysis. Repair totals are deterministically verified from rounded item ranges; valuation exposes distinct as-is and post-repair ranges with source `AI_ESTIMATE`. Neither service calculates total investment, profit, ROI, a candidate score, or a deal decision.
 
-Step 6 provides the provider-agnostic structured AI infrastructure beneath that analysis layer.
+Step 7 provides the semantic vehicle-analysis boundary used by both Step 8 services.
 
 ## Local setup and run
 

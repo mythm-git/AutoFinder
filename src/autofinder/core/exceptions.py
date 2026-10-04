@@ -87,3 +87,12 @@ class AIAllProvidersFailed(AIError):
 
 class VehicleAnalysisError(AIError):
     """Raised when a listing cannot produce a trustworthy structured analysis."""
+
+
+
+class RepairEstimationError(AIError):
+    """Raised when validated evidence cannot produce a trustworthy repair estimate."""
+
+
+class AIValuationError(AIError):
+    """Raised when validated evidence cannot produce a trustworthy AI valuation."""

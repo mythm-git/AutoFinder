@@ -1,6 +1,13 @@
 # Changelog
 
 
+## 2.7.0 — Repair Estimation and AI Valuation
+
+- Added separate provider-neutral repair estimation and temporary AI-only valuation contracts over validated Step 7 evidence.
+- Added deterministic verification of aggregate repair totals, bounded uncertainty reserve, and as-is/post-repair AI valuation ranges.
+- Deliberately excluded total investment, profit, ROI, candidate decisions, live comparables, and runtime alerts.
+
+
 ## 2.6.0 — Structured Vehicle Analysis
 
 - Added provider-neutral `VehicleAnalysis` Pydantic models with explicit source-fact, text-interpretation, fault, repair, maintenance, seller-claim, risk, and missing-information separation.
