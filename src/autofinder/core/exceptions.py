@@ -82,3 +82,8 @@ class AIResponseValidationError(AIProviderError):
 
 class AIAllProvidersFailed(AIError):
     """Raised after primary and permitted fallback attempts have failed."""
+
+
+
+class VehicleAnalysisError(AIError):
+    """Raised when a listing cannot produce a trustworthy structured analysis."""

@@ -4,9 +4,9 @@ AutoFinder searches for potentially profitable used cars. This is a new, local-f
 
 ## Current status
 
-Step 6 adds provider-agnostic structured AI infrastructure only. `AIManager` sends one canonical Pydantic-schema request to Groq first and Gemini only after a classified retryable failure. Provider responses are locally validated before being returned. No vehicle-analysis prompt, valuation, repair, ROI, or runtime AI pipeline has been added.
+Step 7 adds text/structured-data vehicle analysis for listings that already pass deterministic filters. `VehicleAnalyzer` builds a minimal evidence packet from `NormalizedListing`, calls only `AIManager` (Groq primary, Gemini fallback), and returns a locally validated `VehicleAnalysis`. It separates current faults, completed repairs, maintenance, seller claims, risks, and relevant missing information. It deliberately contains no repair prices, valuation, profit, ROI, scoring, images, or runtime pipeline wiring.
 
-Step 4 adds deterministic filtering after early deduplication. Configured price, structured/text dealer, mileage, power, URL, and identity rules emit stable reasons while preserving raw evidence. Listings that pass continue only to future AI work; no AI, valuation, ROI, or alerts exist yet.
+Step 6 provides the provider-agnostic structured AI infrastructure beneath that analysis layer.
 
 ## Local setup and run
 

@@ -1,6 +1,13 @@
 # Changelog
 
 
+## 2.6.0 — Structured Vehicle Analysis
+
+- Added provider-neutral `VehicleAnalysis` Pydantic models with explicit source-fact, text-interpretation, fault, repair, maintenance, seller-claim, risk, and missing-information separation.
+- Added deterministic evidence building from `NormalizedListing`, source-fact integrity checks, fixture-only analyzer tests, and a bounded sanitized live-analysis utility.
+- Deliberately excluded monetary repair estimates, valuation, profit, ROI, candidate scoring, image analysis, and runtime wiring.
+
+
 ## 2.5.2 — Structured AI Provider Verification
 
 - Added non-mutating provider-local schema adapters: Groq strict object closure and Gemini single-string `const` to `enum` compatibility.

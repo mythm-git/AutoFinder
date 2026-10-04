@@ -1,0 +1,32 @@
+[
+  {
+    "name": "healthy_private",
+    "title": "Sanitized compact car, private sale",
+    "description": "Private sale. Timing belt replaced at 95,000 km, oil service documented. Drives well.",
+    "expected": "maintenance"
+  },
+  {
+    "name": "current_faults",
+    "title": "Sanitized compact car with defect",
+    "description": "Clutch slips under load and engine warning light is on. Sold as-is.",
+    "expected": "fault"
+  },
+  {
+    "name": "completed_repairs",
+    "title": "Sanitized compact car, new brakes",
+    "description": "Front brakes and battery replaced recently. No current brake issue stated.",
+    "expected": "repair"
+  },
+  {
+    "name": "sparse",
+    "title": "Car for sale",
+    "description": "Drives.",
+    "expected": "missing"
+  },
+  {
+    "name": "contradictory",
+    "title": "Sanitized compact car 120000 km",
+    "description": "Mileage only 120,000 km; otherwise technically perfect.",
+    "expected": "contradiction"
+  }
+]
