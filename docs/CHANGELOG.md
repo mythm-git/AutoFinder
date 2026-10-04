@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.8.0 — Deterministic Financial Engine
+
+- Added local-only `FinancialCalculator` and canonical conservative, expected, and optimistic post-repair financial scenarios.
+- Added traceable full-investment, profit, and two-decimal deterministic ROI arithmetic using validated Step 8 repair totals and valuation ranges.
+- Deliberately excluded AI calls, candidate/deal decisions, thresholds, and runtime alerts.
 
 ## 2.7.0 — Repair Estimation and AI Valuation
 

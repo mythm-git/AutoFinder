@@ -4,9 +4,9 @@ AutoFinder searches for potentially profitable used cars. This is a new, local-f
 
 ## Current status
 
-Step 8 adds separate evidence-grounded `RepairEstimator` and temporary AI-only `AIValuator` services above validated Step 7 analysis. Repair totals are deterministically verified from rounded item ranges; valuation exposes distinct as-is and post-repair ranges with source `AI_ESTIMATE`. Neither service calculates total investment, profit, ROI, a candidate score, or a deal decision.
+Step 9 adds a local-only `FinancialCalculator` over validated `NormalizedListing`, `RepairEstimate`, and `AIValuation` inputs. It deterministically produces conservative, expected, and optimistic post-repair scenarios with traceable full investment, profit, and ROI. It makes no AI or network calls and deliberately does not make a candidate/deal decision.
 
-Step 7 provides the semantic vehicle-analysis boundary used by both Step 8 services.
+Step 8 provides the evidence-grounded repair and temporary AI-only valuation inputs, while Step 7 remains their semantic vehicle-analysis boundary.
 
 ## Local setup and run
 

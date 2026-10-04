@@ -96,3 +96,8 @@ class RepairEstimationError(AIError):
 
 class AIValuationError(AIError):
     """Raised when validated evidence cannot produce a trustworthy AI valuation."""
+
+
+
+class FinancialAnalysisError(AutoFinderError):
+    """Raised when validated monetary inputs cannot produce deterministic scenarios."""
