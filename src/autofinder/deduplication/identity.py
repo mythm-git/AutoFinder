@@ -10,7 +10,7 @@ from autofinder.models.identity import ListingIdentity
 
 
 def extract_listing_identity(listing: RawMarketplaceListing) -> ListingIdentity:
-    """Extract the stable Kleinanzeigen listing ID from the verified raw ``id`` field.
+    """Extract the stable Kleinanzeigen listing ID from verified current actor fields.
 
     Args:
         listing: Raw record received from the marketplace collector.
@@ -19,9 +19,9 @@ def extract_listing_identity(listing: RawMarketplaceListing) -> ListingIdentity:
         Marketplace plus external listing ID identity.
 
     Raises:
-        IdentityError: If the listing lacks a usable source ``id`` field.
+        IdentityError: If the listing lacks a usable source identity field.
     """
-    external_id = listing.raw_data.get("id")
+    external_id = listing.raw_data.get("id", listing.raw_data.get("listingId"))
     if isinstance(external_id, int):
         external_id = str(external_id)
     if not isinstance(external_id, str) or not external_id.strip():

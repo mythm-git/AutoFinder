@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.11.0 — Complete Runtime Pipeline
+
+- Added injectable, sequential `RuntimePipeline` composition for one real `python -m autofinder` execution.
+- Added backward-compatible support for the verified current Apify `listingId`/flat-attributes response shape while preserving the original source adapter.
+- Preserved early seen-state persistence, zero-new/zero-filter fast paths, listing-level failure isolation, candidate-before-summary Telegram ordering, and one final summary.
+- Defined documented process exit codes: `0` success, `2` partial success, `1` failed; deliberately excluded scheduling and new business logic.
+
 ## 2.10.0 — Runtime Telegram Reporting
 
 - Added typed runtime summaries and a shared-client `RuntimeReporter` for one run summary plus REVIEW/STRONG candidate alerts.

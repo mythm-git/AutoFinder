@@ -39,10 +39,10 @@ class ApifyKleinanzeigenNormalizer(ListingNormalizer):
         warnings: list[NormalizationWarning] = []
         price = _optional_number(raw.get("price"), NormalizationWarning.MISSING_PRICE, NormalizationWarning.INVALID_PRICE, warnings)
         currency = _currency(raw.get("currency"), warnings)
-        location = _location(raw.get("location"), warnings)
-        vehicle = _vehicle(raw.get("vehicle"), warnings)
-        seller = _seller(raw.get("seller"), warnings)
-        media = _media(raw.get("images"))
+        location = _location(raw, warnings)
+        vehicle = _vehicle(raw, warnings)
+        seller = _seller(raw, warnings)
+        media = _media(raw.get("images", raw.get("imageUrls")))
         normalized = NormalizedListing(
             identity=identity,
             title=_optional_text(raw.get("title")),
@@ -86,29 +86,47 @@ def _optional_number(value: Any, missing: NormalizationWarning, invalid: Normali
     return float(value)
 
 
-def _vehicle(value: Any, warnings: list[NormalizationWarning]) -> NormalizedVehicle:
-    """Map only verified current source fields: make, model, mileage, and powerPs."""
-    raw = value if isinstance(value, dict) else {}
-    mileage = _optional_number(raw.get("mileage"), NormalizationWarning.MISSING_MILEAGE, NormalizationWarning.INVALID_MILEAGE, warnings, allow_zero=True)
-    power = _optional_number(raw.get("powerPs"), NormalizationWarning.MISSING_POWER, NormalizationWarning.INVALID_POWER, warnings)
-    return NormalizedVehicle(_optional_text(raw.get("make")), _optional_text(raw.get("model")), mileage, power)
+
+def _structured_number(value: Any, missing: NormalizationWarning, invalid: NormalizationWarning, warnings: list[NormalizationWarning], allow_zero: bool = False) -> float | None:
+    """Accept numeric actor values or digit-only structured strings, never prose."""
+    if isinstance(value, str):
+        value = int(value) if value.strip().isdigit() else value
+    return _optional_number(value, missing, invalid, warnings, allow_zero)
 
 
-def _location(value: Any, warnings: list[NormalizationWarning]) -> NormalizedLocation:
-    """Map verified source location city/postalCode without geocoding."""
-    if not isinstance(value, dict):
-        warnings.append(NormalizationWarning.MISSING_LOCATION)
-        return NormalizedLocation(None, None, None)
-    city = _optional_text(value.get("city"))
-    postal_code = _optional_text(value.get("postalCode"))
+def _vehicle(raw_listing: dict[str, Any], warnings: list[NormalizationWarning]) -> NormalizedVehicle:
+    """Map verified legacy or current actor vehicle fields without title inference."""
+    raw = raw_listing.get("vehicle")
+    if not isinstance(raw, dict):
+        raw = raw_listing.get("attributes") if isinstance(raw_listing.get("attributes"), dict) else {}
+    mileage = _structured_number(raw.get("mileage"), NormalizationWarning.MISSING_MILEAGE, NormalizationWarning.INVALID_MILEAGE, warnings, allow_zero=True)
+    power = _structured_number(raw.get("powerPs", raw.get("power")), NormalizationWarning.MISSING_POWER, NormalizationWarning.INVALID_POWER, warnings)
+    return NormalizedVehicle(
+        _optional_text(raw.get("make", raw.get("brand"))),
+        _optional_text(raw.get("model")),
+        mileage,
+        power,
+    )
+
+
+def _location(raw_listing: dict[str, Any], warnings: list[NormalizationWarning]) -> NormalizedLocation:
+    """Map verified legacy nested or current flat source location without geocoding."""
+    value = raw_listing.get("location")
+    if isinstance(value, dict):
+        city = _optional_text(value.get("city"))
+        postal_code = _optional_text(value.get("postalCode"))
+    else:
+        city = _optional_text(value)
+        postal_code = _optional_text(raw_listing.get("postalCode"))
     if city is None and postal_code is None:
         warnings.append(NormalizationWarning.MISSING_LOCATION)
     return NormalizedLocation(city, postal_code, None)
 
 
-def _seller(value: Any, warnings: list[NormalizationWarning]) -> NormalizedSeller:
-    """Map known structured source seller values without text-based inference."""
-    raw_type = _optional_text(value.get("type")) if isinstance(value, dict) else None
+def _seller(raw_listing: dict[str, Any], warnings: list[NormalizationWarning]) -> NormalizedSeller:
+    """Map known legacy nested or current flat structured seller values."""
+    value = raw_listing.get("seller")
+    raw_type = _optional_text(value.get("type")) if isinstance(value, dict) else _optional_text(raw_listing.get("sellerType"))
     normalized = raw_type.casefold() if raw_type else ""
     if normalized == "private":
         return NormalizedSeller(SellerType.PRIVATE, raw_type)

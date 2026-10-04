@@ -4,7 +4,7 @@ AutoFinder searches for potentially profitable used cars. This is a new, local-f
 
 ## Current status
 
-Step 11 adds a shared-client `RuntimeReporter` that formats one runtime summary and alerts only `REVIEW` / `STRONG_CANDIDATE` deals. Messages are bounded plain text, preserve evidence and upstream calculations, and always require human inspection; `REJECT` deals remain aggregate-only. This step does not wire the runtime pipeline.
+Step 12 wires all implemented components into one sequential, bounded runtime pipeline. `python -m autofinder` performs exactly one real run: collect the configured latest five, deduplicate and persist new identities early, normalize/filter, analyze eligible listings, deliver REVIEW/STRONG alerts, then deliver one final runtime summary. It does not schedule future runs.
 
 Step 10 owns deterministic decisions, Step 9 owns financial arithmetic, Step 8 provides evidence-grounded repair and temporary AI-only valuation inputs, and Step 7 remains their semantic vehicle-analysis boundary.
 
@@ -17,7 +17,7 @@ python -m pip install -e ".[dev]"
 python -m autofinder
 ```
 
-Run tests with `python -m pytest`. `python scripts/verify_deduplication.py` performs a local fixture-only verification; it makes no Apify call.
+Run tests with `python -m pytest`. `python -m autofinder` executes one complete real run and exits; it does not provide 45-minute scheduling. `python scripts/verify_runtime_pipeline.py` performs a local fixture-only pipeline verification and makes no external calls.
 
 ## Configuration and secrets
 

@@ -48,6 +48,28 @@ def test_representative_fixture_maps_verified_fields_and_identity() -> None:
     assert not result.warnings
 
 
+
+def test_current_actor_shape_uses_listing_id_and_structured_attributes() -> None:
+    """The verified flat actor shape maps without falling back to free text."""
+    raw = RawMarketplaceListing(
+        "kleinanzeigen",
+        {
+            "listingId": "3521306042", "title": "Sanitized", "description": "Sanitized",
+            "price": 1900, "currency": "EUR", "url": "https://example.invalid/3521306042",
+            "location": "Sanitized town", "postalCode": "27449", "sellerType": "private",
+            "imageUrls": ["https://example.invalid/image.jpg"],
+            "attributes": {"brand": "Example", "model": "Current", "mileage": "155000", "power": "90"},
+        },
+        datetime.now(UTC),
+    )
+    listing = ApifyKleinanzeigenNormalizer().normalize(raw).listing
+    assert listing.identity.canonical_key == "kleinanzeigen:3521306042"
+    assert (listing.location.city, listing.location.postal_code) == ("Sanitized town", "27449")
+    assert (listing.vehicle.make, listing.vehicle.model, listing.vehicle.mileage_km, listing.vehicle.power_ps) == ("Example", "Current", 155000, 90)
+    assert listing.seller.type is SellerType.PRIVATE
+    assert listing.media.image_urls == ("https://example.invalid/image.jpg",)
+
+
 def test_missing_optional_values_and_unknown_seller_emit_warnings() -> None:
     """Unavailable optional source facts remain None instead of fabricated values."""
     raw = _raw()
