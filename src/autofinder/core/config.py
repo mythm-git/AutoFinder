@@ -77,6 +77,15 @@ class FiltersConfig:
 
 
 @dataclass(frozen=True)
+class TelegramReportingConfig:
+    """Non-secret Step 11 delivery and bounded-presentation settings."""
+
+    runtime_summary_enabled: bool
+    candidate_alerts_enabled: bool
+    max_list_items: int
+
+
+@dataclass(frozen=True)
 class DealEvaluationConfig:
     """Explicit, non-secret deterministic policy settings for Step 10."""
 
@@ -118,6 +127,7 @@ class AppConfig:
     apify: ApifyConfig
     deduplication: DeduplicationConfig
     filters: FiltersConfig
+    telegram: TelegramReportingConfig
     deal_evaluation: DealEvaluationConfig
     ai: AIConfig
 
@@ -157,6 +167,7 @@ def _build_config(payload: dict[str, Any]) -> AppConfig:
     apify = payload["apify"]
     deduplication = payload["deduplication"]
     filters = payload["filters"]
+    telegram = payload["telegram"]
     deal_evaluation = payload["deal_evaluation"]
     ai = payload["ai"]
     config = AppConfig(
@@ -184,12 +195,27 @@ def _build_config(payload: dict[str, Any]) -> AppConfig:
             reject_dealers=_bool(filters["reject_dealers"], "filters.reject_dealers"),
             dealer_text_indicators=_nonempty_string_tuple(filters["dealer_text_indicators"], "filters.dealer_text_indicators"),
         ),
+        telegram=_telegram_reporting_config(telegram),
         deal_evaluation=_deal_evaluation_config(deal_evaluation),
         ai=_ai_config(ai),
     )
     if config.filters.price.minimum > config.filters.price.maximum:
         raise ValueError("filters.price minimum cannot exceed maximum")
     return config
+
+
+def _telegram_reporting_config(value: Any) -> TelegramReportingConfig:
+    """Validate concise runtime Telegram reporting policy."""
+    if not isinstance(value, dict):
+        raise ValueError("telegram must be a mapping")
+    max_items = _positive_int(value["max_list_items"], "telegram.max_list_items")
+    if max_items > 10:
+        raise ValueError("telegram.max_list_items must not exceed 10")
+    return TelegramReportingConfig(
+        runtime_summary_enabled=_bool(value["runtime_summary_enabled"], "telegram.runtime_summary_enabled"),
+        candidate_alerts_enabled=_bool(value["candidate_alerts_enabled"], "telegram.candidate_alerts_enabled"),
+        max_list_items=max_items,
+    )
 
 
 def _deal_evaluation_config(value: Any) -> DealEvaluationConfig:

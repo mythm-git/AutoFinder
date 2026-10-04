@@ -23,6 +23,9 @@ def test_loads_expected_foundation_configuration() -> None:
     assert config.filters.mileage.minimum == 0
     assert config.filters.mileage.maximum == 200000
     assert "autohaus" in config.filters.dealer_text_indicators
+    assert config.telegram.runtime_summary_enabled is True
+    assert config.telegram.candidate_alerts_enabled is True
+    assert config.telegram.max_list_items == 4
     assert config.deal_evaluation.minimum_expected_roi_percent == 20
     assert config.deal_evaluation.minimum_conservative_roi_for_strong_percent == 0
     assert config.deal_evaluation.maximum_risk_for_strong.value == "medium"
@@ -35,6 +38,15 @@ def test_rejects_nonpositive_listings_per_run(tmp_path: Path) -> None:
     invalid = tmp_path / "invalid.yaml"
     invalid.write_text(config, encoding="utf-8")
     with pytest.raises(ConfigurationError, match="listings_per_run"):
+        load_config(invalid)
+
+
+def test_rejects_invalid_telegram_reporting_bound(tmp_path: Path) -> None:
+    """Runtime presentation remains intentionally concise and configurable."""
+    config = CONFIG_PATH.read_text(encoding="utf-8").replace("max_list_items: 4", "max_list_items: 11")
+    invalid = tmp_path / "invalid-telegram.yaml"
+    invalid.write_text(config, encoding="utf-8")
+    with pytest.raises(ConfigurationError, match="telegram.max_list_items"):
         load_config(invalid)
 
 

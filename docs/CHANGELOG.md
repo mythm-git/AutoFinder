@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.10.0 — Runtime Telegram Reporting
+
+- Added typed runtime summaries and a shared-client `RuntimeReporter` for one run summary plus REVIEW/STRONG candidate alerts.
+- Added plain-text, bounded, safe candidate presentation with human-readable reason codes and REJECT suppression.
+- Deliberately excluded runtime orchestration, scheduling, new AI work, and new deal calculations.
+
 ## 2.9.0 — Deterministic Deal Evaluation
 
 - Added a pure local, configurable `DealEvaluator` with `REJECT`, `REVIEW`, and `STRONG_CANDIDATE` decision-support states.

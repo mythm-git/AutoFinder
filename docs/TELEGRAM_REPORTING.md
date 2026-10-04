@@ -1,5 +1,9 @@
 # Telegram reporting
 
-The shared `TelegramClient` owns Telegram Bot API transport, timeout handling, and secret-safe errors. `DevelopmentReporter` is the only reporter implemented in Step 1 and sends a concise post-commit development summary.
+`TelegramClient` is the sole Telegram Bot API transport. It owns timeout handling and secret-safe delivery errors. `DevelopmentReporter` remains unchanged and sends concise post-commit development summaries headed `AutoFinder Development`.
 
-Future `RuntimeReporter` may describe run health, while a future `DealReporter` may send candidate cars. They must reuse `TelegramClient`, but their message types and delivery policy remain separate. A Telegram delivery failure is logged and surfaced; it does not erase completed local implementation work.
+Step 11 adds `RuntimeReporter`, which uses the same client while preserving separate runtime semantics. It can send one enabled `AutoFinder Runtime` summary per future run and candidate alerts for `REVIEW` (`AutoFinder Candidate — REVIEW`) or `STRONG_CANDIDATE` (`AutoFinder Strong Candidate`). `REJECT` never produces an individual alert; it appears only as an aggregate runtime count.
+
+Runtime summaries treat zero new listings and all-filtered listings as successful normal outcomes. Run status is `SUCCESS`, `PARTIAL_SUCCESS`, or `FAILED`. Future orchestration should send candidate alerts first and one final run summary last, but Step 11 intentionally does not wire that orchestration.
+
+Messages use Telegram plain text with no parse mode, so no Markdown/HTML escaping is needed for user-derived fields. Titles, URLs, individual list entries, displayed lists, and the final message are deterministically bounded; the final limit is 4,000 characters. Candidate messages use only validated upstream models, label valuation as AI estimate, translate stable reason codes in the presentation layer, and state that human inspection and approval remain required. A Telegram delivery failure is logged and surfaced; it does not erase completed local work.

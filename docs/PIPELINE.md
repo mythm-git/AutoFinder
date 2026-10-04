@@ -11,6 +11,7 @@ The implemented boundaries are now: Apify latest five → minimal identity extra
 7. `AIValuator` consumes `NormalizedListing`, `VehicleAnalysis`, and `RepairEstimate` to produce temporary `AI_ESTIMATE` as-is and post-repair ranges.
 8. `FinancialCalculator` deterministically produces conservative, expected, and optimistic full-investment, profit, and ROI scenarios from Step 8 totals and post-repair value ranges.
 9. `DealEvaluator` classifies the validated results as `REJECT`, `REVIEW`, or `STRONG_CANDIDATE` using typed configurable rules.
-10. Future runtime Telegram reporting, end-to-end pipeline orchestration, and n8n scheduling remain separate stages.
+10. `RuntimeReporter` can format candidate alerts for REVIEW/STRONG results, followed by one final typed run summary through the shared Telegram client. It is not yet wired into an end-to-end runtime.
+11. Future complete orchestration and n8n scheduling remain separate stages.
 
-Implemented: collection, early deduplication, normalization, basic filters, generic AI infrastructure, vehicle analysis, repair estimation, AI-only valuation, deterministic financial analysis, and deterministic deal evaluation. Not implemented: runtime alerts, complete orchestration, database, n8n, mobile.de comparables, custom scraping, or image analysis.
+Implemented: collection, early deduplication, normalization, basic filters, generic AI infrastructure, vehicle analysis, repair estimation, AI-only valuation, deterministic financial analysis, deterministic deal evaluation, and runtime Telegram reporting. Not implemented: complete orchestration, database, n8n, mobile.de comparables, custom scraping, or image analysis.

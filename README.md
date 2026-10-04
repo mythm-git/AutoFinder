@@ -4,9 +4,9 @@ AutoFinder searches for potentially profitable used cars. This is a new, local-f
 
 ## Current status
 
-Step 10 adds a local-only `DealEvaluator` over validated upstream evidence and `FinancialAnalysis`. It returns configurable, explainable `REJECT`, `REVIEW`, or `STRONG_CANDIDATE` decision-support states using expected ROI, conservative downside, risk, and separate confidence controls. It never makes an automatic purchase recommendation, AI call, or network call.
+Step 11 adds a shared-client `RuntimeReporter` that formats one runtime summary and alerts only `REVIEW` / `STRONG_CANDIDATE` deals. Messages are bounded plain text, preserve evidence and upstream calculations, and always require human inspection; `REJECT` deals remain aggregate-only. This step does not wire the runtime pipeline.
 
-Step 9 owns deterministic financial arithmetic; Step 8 provides evidence-grounded repair and temporary AI-only valuation inputs; Step 7 remains their semantic vehicle-analysis boundary.
+Step 10 owns deterministic decisions, Step 9 owns financial arithmetic, Step 8 provides evidence-grounded repair and temporary AI-only valuation inputs, and Step 7 remains their semantic vehicle-analysis boundary.
 
 ## Local setup and run
 

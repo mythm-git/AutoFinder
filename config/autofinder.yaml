@@ -36,6 +36,11 @@ filters:
     - "weitere fahrzeuge"
     - "verkaufsteam"
 
+telegram:
+  runtime_summary_enabled: true
+  candidate_alerts_enabled: true
+  max_list_items: 4
+
 deal_evaluation:
   minimum_expected_roi_percent: 20.0
   minimum_conservative_roi_for_strong_percent: 0.0
