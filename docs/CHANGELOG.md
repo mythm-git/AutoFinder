@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.12.0 — n8n Runtime Scheduler
+
+- Added the published native npm n8n 2.35.7 `AutoFinder Scheduler` workflow with a 45-minute `Europe/Berlin` Schedule Trigger and one Windows Execute Command.
+- Kept all AutoFinder secrets in `.env`, preserved Python-owned Telegram reporting and business logic, and documented exit-code/no-retry behavior.
+
 ## 2.11.0 — Complete Runtime Pipeline
 
 - Added injectable, sequential `RuntimePipeline` composition for one real `python -m autofinder` execution.

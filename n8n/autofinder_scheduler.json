@@ -1,0 +1,51 @@
+[
+  {
+    "id": "AFScheduler0001",
+    "name": "AutoFinder Scheduler",
+    "description": "Runs the local AutoFinder process every 45 minutes.",
+    "active": false,
+    "isArchived": false,
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 45
+              }
+            ]
+          }
+        },
+        "id": "b8dc5a6a-fcc8-4b02-a5f2-bd49a9bb27cd",
+        "name": "Every 45 Minutes",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [300, 300]
+      },
+      {
+        "parameters": {
+          "command": "cd /d C:\\Users\\maitham\\Desktop\\AutoFinder && python -m autofinder"
+        },
+        "id": "6238fc43-2806-4c2d-8a3b-c9df93944c9f",
+        "name": "Run AutoFinder",
+        "type": "n8n-nodes-base.executeCommand",
+        "typeVersion": 1,
+        "position": [580, 300]
+      }
+    ],
+    "connections": {
+      "Every 45 Minutes": {
+        "main": [[{"node": "Run AutoFinder", "type": "main", "index": 0}]]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1",
+      "timezone": "Europe/Berlin"
+    },
+    "pinData": {},
+    "meta": {
+      "templateCredsSetupCompleted": true
+    }
+  }
+]

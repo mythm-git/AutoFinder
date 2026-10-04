@@ -8,7 +8,7 @@ From the project root, run:
 python -m autofinder
 ```
 
-This performs one bounded run and exits. It is intentionally not an internal scheduler; n8n scheduling is a future step.
+This performs one bounded run and exits. It has no internal scheduler. Native npm n8n 2.35.7 now invokes this exact command from the published `AutoFinder Scheduler` workflow (`AFScheduler0001`) every 45 minutes in `Europe/Berlin`.
 
 ## Execution order
 

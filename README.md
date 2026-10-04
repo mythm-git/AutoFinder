@@ -4,7 +4,7 @@ AutoFinder searches for potentially profitable used cars. This is a new, local-f
 
 ## Current status
 
-Step 12 wires all implemented components into one sequential, bounded runtime pipeline. `python -m autofinder` performs exactly one real run: collect the configured latest five, deduplicate and persist new identities early, normalize/filter, analyze eligible listings, deliver REVIEW/STRONG alerts, then deliver one final runtime summary. It does not schedule future runs.
+Step 13 adds the native n8n 2.35.7 scheduler workflow `AutoFinder Scheduler` (`AFScheduler0001`). It triggers the existing one-run Python process every 45 minutes in `Europe/Berlin`; collection, AI, financial logic, decisions, and Telegram reporting remain in Python.
 
 Step 10 owns deterministic decisions, Step 9 owns financial arithmetic, Step 8 provides evidence-grounded repair and temporary AI-only valuation inputs, and Step 7 remains their semantic vehicle-analysis boundary.
 
