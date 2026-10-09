@@ -52,6 +52,24 @@ class TelegramClient:
         except RuntimeCredentialError as error:
             raise TelegramError("Telegram is not configured: TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are required.") from error
 
+    def send_document(self, file_path: Path, caption: str) -> None:
+        """Send one existing local file as a Telegram document without logging its contents."""
+        if not file_path.is_file() or file_path.suffix.lower() != ".md":
+            raise TelegramError("Telegram document must be an existing Markdown file.")
+        boundary = "----AutoFinderTelegramBoundary"
+        body = (
+            f"--{boundary}\r\nContent-Disposition: form-data; name=\"chat_id\"\r\n\r\n{self._settings.chat_id}\r\n"
+            f"--{boundary}\r\nContent-Disposition: form-data; name=\"caption\"\r\n\r\n{caption}\r\n"
+            f"--{boundary}\r\nContent-Disposition: form-data; name=\"document\"; filename=\"{file_path.name}\"\r\nContent-Type: text/markdown; charset=utf-8\r\n\r\n"
+        ).encode("utf-8") + file_path.read_bytes() + f"\r\n--{boundary}--\r\n".encode("utf-8")
+        request = Request(url=f"https://api.telegram.org/bot{self._settings.bot_token}/sendDocument", data=body, headers={"Content-Type": f"multipart/form-data; boundary={boundary}"}, method="POST")
+        try:
+            self._transport(request, self._timeout_seconds)
+        except (HTTPError, URLError, TimeoutError, OSError) as error:
+            self._logger.error("Telegram document delivery failed: %s", type(error).__name__)
+            raise TelegramError("Telegram document delivery failed; see application logs for details.") from error
+        self._logger.info("Telegram document delivered: filename=%s", file_path.name)
+
     def send_text(self, text: str, parse_mode: str | None = None) -> None:
         """Send one bounded non-empty text message.
 

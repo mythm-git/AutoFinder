@@ -18,4 +18,7 @@ data/state/*
 !data/state/.gitkeep
 data/cache/*
 !data/cache/.gitkeep
+data/audit/
+data/report_state/
+reports/daily/*.md
 *.tmp

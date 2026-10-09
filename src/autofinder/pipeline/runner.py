@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 import logging
 import time
+import uuid
 from typing import Protocol
 
 from autofinder.analysis.analyzer import VehicleAnalyzer
@@ -22,6 +24,8 @@ from autofinder.notifications.runtime_models import RuntimeRunStatus, RuntimeRun
 from autofinder.notifications.runtime_reporter import RuntimeReporter
 from autofinder.normalization.apify_kleinanzeigen import ApifyKleinanzeigenNormalizer
 from autofinder.repair.estimator import RepairEstimator
+from autofinder.reporting.audit_factory import basic_filter_record, evaluation_record, failure_record
+from autofinder.reporting.audit_repository import JsonlAuditRepository
 from autofinder.valuation.ai_valuator import AIValuator
 
 
@@ -88,6 +92,7 @@ class RuntimePipeline:
         financial_calculator: FinancialCalculator,
         deal_evaluator: DealEvaluator,
         runtime_reporter: RuntimeReporter,
+        audit_repository: JsonlAuditRepository | None = None,
         clock: _Clock = time.monotonic,
     ) -> None:
         """Attach one reusable dependency instance per runtime stage."""
@@ -101,6 +106,7 @@ class RuntimePipeline:
         self._financial_calculator = financial_calculator
         self._deal_evaluator = deal_evaluator
         self._runtime_reporter = runtime_reporter
+        self._audit_repository = audit_repository
         self._clock = clock
         self._logger = logging.getLogger("autofinder.pipeline.runtime")
 
@@ -109,6 +115,8 @@ class RuntimePipeline:
         started_at = self._clock()
         counts = _Counts()
         listing_failure = False
+        self._run_id = uuid.uuid4().hex
+        self._audited_listing_keys: set[str] = set()
         self._logger.info("AutoFinder runtime run started.")
 
         try:
@@ -155,6 +163,8 @@ class RuntimePipeline:
                 passed_listings.append(filtered.listing)
             else:
                 counts.basic_filter_rejected_count += 1
+                if self._audit_repository:
+                    self._audit(basic_filter_record(self._run_id, self._audit_now(), filtered))
 
         self._logger.info(
             "Basic filtering completed: passed=%s rejected=%s",
@@ -193,6 +203,8 @@ class RuntimePipeline:
         except AutoFinderError as error:
             counts.ai_analysis_failed_count += 1
             self._logger.error("Listing-level failure: listing=%s stage=vehicle_analysis error_type=%s", identity, type(error).__name__)
+            if self._audit_repository:
+                self._audit(failure_record(self._run_id, self._audit_now(), listing, "vehicle_analysis", type(error).__name__))
             return False
 
         try:
@@ -208,8 +220,12 @@ class RuntimePipeline:
             )
         except AutoFinderError as error:
             self._logger.error("Listing-level failure: listing=%s stage=downstream error_type=%s", identity, type(error).__name__)
+            if self._audit_repository:
+                self._audit(failure_record(self._run_id, self._audit_now(), listing, "downstream", type(error).__name__))
             return False
 
+        if self._audit_repository:
+            self._audit(evaluation_record(self._run_id, self._audit_now(), listing, analysis_result.analysis, repair_result.estimate, valuation_result.valuation, financial_analysis, evaluation))
         counts.deals_evaluated_count += 1
         if evaluation.decision is DealDecision.REJECT:
             counts.rejected_deals_count += 1
@@ -234,6 +250,20 @@ class RuntimePipeline:
             self._logger.error("Listing-level failure: listing=%s stage=candidate_reporting error_type=%s", identity, type(error).__name__)
             return False
         return True
+
+    def _audit_now(self):
+        """Return configured local time only when daily auditing is enabled."""
+        return self._audit_repository.local_now() if self._audit_repository else datetime.now().astimezone()
+
+    def _audit(self, record) -> None:
+        """Persist one safe record once per listing without affecting decisions."""
+        if self._audit_repository is None or record.listing_key in self._audited_listing_keys:
+            return
+        try:
+            self._audit_repository.append(record)
+            self._audited_listing_keys.add(record.listing_key)
+        except OSError as error:
+            self._logger.error("Audit persistence failed: error_type=%s", type(error).__name__)
 
     def _complete(
         self,

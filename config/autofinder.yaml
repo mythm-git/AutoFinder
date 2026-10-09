@@ -50,6 +50,16 @@ deal_evaluation:
   maximum_risk_for_strong: "medium"
   reject_very_high_risk: true
 
+daily_reporting:
+  enabled: true
+  timezone: "Europe/Berlin"
+  report_time: "00:10"
+  report_directory: "reports/daily"
+  audit_directory: "data/audit"
+  state_file: "data/report_state/daily_reports.json"
+  send_to_telegram: true
+  include_basic_filter_rejections: true
+
 ai:
   primary_provider: "groq"
   fallback_provider: "gemini"

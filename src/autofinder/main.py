@@ -24,6 +24,7 @@ from autofinder.notifications.telegram import TelegramClient
 from autofinder.normalization.apify_kleinanzeigen import ApifyKleinanzeigenNormalizer
 from autofinder.pipeline.runner import FAILED_EXIT_CODE, RuntimePipeline
 from autofinder.repair.estimator import RepairEstimator
+from autofinder.reporting.audit_repository import JsonlAuditRepository
 from autofinder.valuation.ai_valuator import AIValuator
 
 
@@ -77,6 +78,8 @@ def build_runtime_pipeline(config: AppConfig, project_root: Path) -> RuntimePipe
             TelegramClient.from_project_environment(project_root),
             config.telegram,
         ),
+        audit_repository=(JsonlAuditRepository(project_root / config.daily_reporting.audit_directory, config.daily_reporting.timezone)
+                          if config.daily_reporting and config.daily_reporting.enabled else None),
     )
 
 

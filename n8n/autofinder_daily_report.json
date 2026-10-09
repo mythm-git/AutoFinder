@@ -1,0 +1,28 @@
+{
+  "name": "AutoFinder Daily Report",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {"interval": [{"field": "cronExpression", "expression": "10 0 * * *"}]},
+        "timezone": "Europe/Berlin"
+      },
+      "id": "daily-report-schedule",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {"command": "cd /d C:\\Users\\maitham\\Desktop\\AutoFinder && python scripts\\generate_daily_report.py --date yesterday --send"},
+      "id": "daily-report-command",
+      "name": "Generate and Send Daily Report",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [520, 300]
+    }
+  ],
+  "connections": {"Schedule Trigger": {"main": [[{"node": "Generate and Send Daily Report", "type": "main", "index": 0}]]}},
+  "active": false,
+  "settings": {"executionOrder": "v1"},
+  "versionId": "autofinder-daily-report-v1"
+}

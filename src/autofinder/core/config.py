@@ -86,6 +86,20 @@ class TelegramReportingConfig:
 
 
 @dataclass(frozen=True)
+class DailyReportingConfig:
+    """Non-secret daily local audit and document-delivery settings."""
+
+    enabled: bool
+    timezone: str
+    report_time: str
+    report_directory: str
+    audit_directory: str
+    state_file: str
+    send_to_telegram: bool
+    include_basic_filter_rejections: bool
+
+
+@dataclass(frozen=True)
 class DealEvaluationConfig:
     """Explicit, non-secret deterministic policy settings for Step 10."""
 
@@ -130,6 +144,7 @@ class AppConfig:
     telegram: TelegramReportingConfig
     deal_evaluation: DealEvaluationConfig
     ai: AIConfig
+    daily_reporting: DailyReportingConfig | None = None
 
 
 def load_config(path: Path) -> AppConfig:
@@ -170,6 +185,7 @@ def _build_config(payload: dict[str, Any]) -> AppConfig:
     telegram = payload["telegram"]
     deal_evaluation = payload["deal_evaluation"]
     ai = payload["ai"]
+    daily_reporting = payload.get("daily_reporting")
     config = AppConfig(
         scheduler=SchedulerConfig(interval_minutes=_positive_int(scheduler["interval_minutes"], "scheduler.interval_minutes")),
         search=SearchConfig(
@@ -198,6 +214,7 @@ def _build_config(payload: dict[str, Any]) -> AppConfig:
         telegram=_telegram_reporting_config(telegram),
         deal_evaluation=_deal_evaluation_config(deal_evaluation),
         ai=_ai_config(ai),
+        daily_reporting=_daily_reporting_config(daily_reporting) if daily_reporting is not None else None,
     )
     if config.filters.price.minimum > config.filters.price.maximum:
         raise ValueError("filters.price minimum cannot exceed maximum")
@@ -215,6 +232,31 @@ def _telegram_reporting_config(value: Any) -> TelegramReportingConfig:
         runtime_summary_enabled=_bool(value["runtime_summary_enabled"], "telegram.runtime_summary_enabled"),
         candidate_alerts_enabled=_bool(value["candidate_alerts_enabled"], "telegram.candidate_alerts_enabled"),
         max_list_items=max_items,
+    )
+
+
+def _daily_reporting_config(value: Any) -> DailyReportingConfig:
+    """Validate local-only daily reporting paths and scheduling metadata."""
+    if not isinstance(value, dict):
+        raise ValueError("daily_reporting must be a mapping")
+    timezone = _nonempty_string(value["timezone"], "daily_reporting.timezone")
+    try:
+        from zoneinfo import ZoneInfo
+        ZoneInfo(timezone)
+    except Exception as error:
+        raise ValueError("daily_reporting.timezone must be an IANA timezone") from error
+    report_time = _nonempty_string(value["report_time"], "daily_reporting.report_time")
+    if len(report_time) != 5 or report_time[2] != ":":
+        raise ValueError("daily_reporting.report_time must use HH:MM")
+    return DailyReportingConfig(
+        enabled=_bool(value["enabled"], "daily_reporting.enabled"),
+        timezone=timezone,
+        report_time=report_time,
+        report_directory=_relative_file_path(value["report_directory"], "daily_reporting.report_directory"),
+        audit_directory=_relative_file_path(value["audit_directory"], "daily_reporting.audit_directory"),
+        state_file=_relative_file_path(value["state_file"], "daily_reporting.state_file"),
+        send_to_telegram=_bool(value["send_to_telegram"], "daily_reporting.send_to_telegram"),
+        include_basic_filter_rejections=_bool(value["include_basic_filter_rejections"], "daily_reporting.include_basic_filter_rejections"),
     )
 
 
