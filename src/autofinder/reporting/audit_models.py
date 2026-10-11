@@ -27,6 +27,7 @@ class AuditRecord:
     financial: dict[str, Any] | None = None
     evaluation: dict[str, Any] | None = None
     failure: dict[str, str] | None = None
+    diagnostics: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Return JSON-safe data without provider payloads or credentials."""
@@ -52,6 +53,7 @@ class AuditRecord:
             financial=_optional_mapping(payload.get("financial")),
             evaluation=_optional_mapping(payload.get("evaluation")),
             failure=_optional_string_mapping(payload.get("failure")),
+            diagnostics=_optional_mapping(payload.get("diagnostics")),
         )
 
 

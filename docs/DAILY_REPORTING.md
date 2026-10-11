@@ -9,7 +9,10 @@ Run manually:
 ```powershell
 python scripts/generate_daily_report.py --date yesterday --send
 python scripts/generate_daily_report.py --date 2026-10-09 --force --send
+python scripts/generate_diagnostic_report.py --send
 ```
+
+`generate_diagnostic_report.py` writes `reports/daily/AutoFinder_Diagnostic_Last_7_Days.md`, uses only stored audit evidence, and sends that Markdown file as a Telegram document when `--send` is supplied.
 
 The report is deterministic: it aggregates canonical filter/deal reason codes and presents already-calculated analysis, repair, valuation, and financial results. It never calls AI or changes policy. Telegram delivery sends the Markdown as a document. A successful send is recorded in `data/report_state/daily_reports.json`; repeat sends are suppressed unless `--force` is requested. If Telegram fails, the local report remains the source of truth.
 
