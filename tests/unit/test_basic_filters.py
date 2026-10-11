@@ -106,6 +106,20 @@ def test_vehicle_ranges_and_missing_optional_values() -> None:
     assert Reason.INVALID_POWER in invalid_result.rejection_reasons
 
 
+def test_missing_vehicle_attributes_do_not_bypass_dealer_rejection() -> None:
+    """Unknown optional facts warn, while independent dealer policy still rejects."""
+    raw = _raw("99")
+    raw.raw_data["vehicle"].pop("mileage")
+    raw.raw_data["vehicle"].pop("powerPs")
+    raw.raw_data["seller"] = {"type": "dealer"}
+    result = _result(raw)
+    assert not result.passed
+    assert Reason.DEALER_SELLER in result.rejection_reasons
+    assert Reason.INVALID_MILEAGE not in result.rejection_reasons
+    assert Reason.INVALID_POWER not in result.rejection_reasons
+    assert {FilterWarning.MISSING_MILEAGE, FilterWarning.MISSING_POWER}.issubset(result.warnings)
+
+
 def test_url_identity_and_multiple_reasons_are_defensive() -> None:
     """Structural contract failures are explicit and can coexist with price failures."""
     raw = _raw(); raw.raw_data["url"] = "not a URL"; raw.raw_data["price"] = 3001
