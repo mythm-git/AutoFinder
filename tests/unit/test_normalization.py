@@ -15,6 +15,7 @@ from autofinder.normalization import ApifyKleinanzeigenNormalizer
 
 
 FIXTURE = Path(__file__).parents[1] / "fixtures" / "apify_kleinanzeigen_dataset.json"
+LIVE_FIXTURE = Path(__file__).parents[1] / "fixtures" / "apify_kleinanzeigen_live_schema.json"
 
 
 def _raw() -> RawMarketplaceListing:
@@ -68,6 +69,35 @@ def test_current_actor_shape_uses_listing_id_and_structured_attributes() -> None
     assert (listing.vehicle.make, listing.vehicle.model, listing.vehicle.mileage_km, listing.vehicle.power_ps) == ("Example", "Current", 155000, 90)
     assert listing.seller.type is SellerType.PRIVATE
     assert listing.media.image_urls == ("https://example.invalid/image.jpg",)
+
+
+def test_live_actor_fixture_parses_unit_bearing_structured_attributes() -> None:
+    """Current Apify attributes use explicit German km and PS unit strings."""
+    raw = RawMarketplaceListing("kleinanzeigen", json.loads(LIVE_FIXTURE.read_text(encoding="utf-8")), datetime.now(UTC))
+    listing = ApifyKleinanzeigenNormalizer().normalize(raw).listing
+    assert (listing.vehicle.mileage_km, listing.vehicle.power_ps) == (126500, 109)
+
+
+@pytest.mark.parametrize(("mileage", "power", "expected_mileage", "expected_power", "warning"), [
+    (126500, 109, 126500, 109, None), ("126500", "109", 126500, 109, None),
+    ("126.500", "109 PS", 126500, 109, None), ("126.500 km", "71 PS", 126500, 71, None),
+    ("111.846 km", "80 PS", 111846, 80, None), ("190.000 km", "70 PS", 190000, 70, None),
+    (None, None, None, None, NormalizationWarning.MISSING_MILEAGE), ("", "PS", None, None, NormalizationWarning.INVALID_MILEAGE),
+    ("unknown", "abc km", None, None, NormalizationWarning.INVALID_MILEAGE),
+])
+def test_structured_vehicle_unit_parsing(mileage: object, power: object, expected_mileage: float | None, expected_power: float | None, warning: NormalizationWarning | None) -> None:
+    """Known structured formats parse; malformed values retain existing warnings."""
+    raw = _raw()
+    raw.raw_data["vehicle"]["mileage"] = mileage
+    raw.raw_data["vehicle"]["powerPs"] = power
+    result = ApifyKleinanzeigenNormalizer().normalize(raw)
+    assert (result.listing.vehicle.mileage_km, result.listing.vehicle.power_ps) == (expected_mileage, expected_power)
+    if warning:
+        assert warning in result.warnings
+    if power is None:
+        assert NormalizationWarning.MISSING_POWER in result.warnings
+    elif expected_power is None:
+        assert NormalizationWarning.INVALID_POWER in result.warnings
 
 
 def test_missing_optional_values_and_unknown_seller_emit_warnings() -> None:

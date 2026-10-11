@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import logging
+import re
 from datetime import UTC, datetime
 from typing import Any
 
@@ -87,11 +88,34 @@ def _optional_number(value: Any, missing: NormalizationWarning, invalid: Normali
 
 
 
-def _structured_number(value: Any, missing: NormalizationWarning, invalid: NormalizationWarning, warnings: list[NormalizationWarning], allow_zero: bool = False) -> float | None:
-    """Accept numeric actor values or digit-only structured strings, never prose."""
-    if isinstance(value, str):
-        value = int(value) if value.strip().isdigit() else value
-    return _optional_number(value, missing, invalid, warnings, allow_zero)
+def _structured_mileage(value: Any, warnings: list[NormalizationWarning]) -> float | None:
+    """Parse only known Apify mileage forms, including German thousands and ``km``."""
+    return _optional_number(_parse_mileage(value), NormalizationWarning.MISSING_MILEAGE, NormalizationWarning.INVALID_MILEAGE, warnings, allow_zero=True)
+
+
+def _structured_power_ps(value: Any, warnings: list[NormalizationWarning]) -> float | None:
+    """Parse only known Apify PS forms; kW is deliberately not inferred as PS."""
+    return _optional_number(_parse_power_ps(value), NormalizationWarning.MISSING_POWER, NormalizationWarning.INVALID_POWER, warnings)
+
+
+def _parse_mileage(value: Any) -> int | float | None | object:
+    """Return a structured kilometre value or an invalid sentinel for malformed text."""
+    if value is None or isinstance(value, (int, float)) and not isinstance(value, bool):
+        return value
+    if not isinstance(value, str):
+        return value
+    match = re.fullmatch(r"\s*(\d{1,3}(?:\.\d{3})+|\d+)(?:\s*km)?\s*", value, flags=re.IGNORECASE)
+    return int(match.group(1).replace(".", "")) if match else value
+
+
+def _parse_power_ps(value: Any) -> int | float | None | object:
+    """Return a structured PS value or an invalid sentinel for malformed text."""
+    if value is None or isinstance(value, (int, float)) and not isinstance(value, bool):
+        return value
+    if not isinstance(value, str):
+        return value
+    match = re.fullmatch(r"\s*(\d+)(?:\s*ps)?\s*", value, flags=re.IGNORECASE)
+    return int(match.group(1)) if match else value
 
 
 def _vehicle(raw_listing: dict[str, Any], warnings: list[NormalizationWarning]) -> NormalizedVehicle:
@@ -99,8 +123,8 @@ def _vehicle(raw_listing: dict[str, Any], warnings: list[NormalizationWarning]) 
     raw = raw_listing.get("vehicle")
     if not isinstance(raw, dict):
         raw = raw_listing.get("attributes") if isinstance(raw_listing.get("attributes"), dict) else {}
-    mileage = _structured_number(raw.get("mileage"), NormalizationWarning.MISSING_MILEAGE, NormalizationWarning.INVALID_MILEAGE, warnings, allow_zero=True)
-    power = _structured_number(raw.get("powerPs", raw.get("power")), NormalizationWarning.MISSING_POWER, NormalizationWarning.INVALID_POWER, warnings)
+    mileage = _structured_mileage(raw.get("mileage"), warnings)
+    power = _structured_power_ps(raw.get("powerPs", raw.get("power")), warnings)
     return NormalizedVehicle(
         _optional_text(raw.get("make", raw.get("brand"))),
         _optional_text(raw.get("model")),

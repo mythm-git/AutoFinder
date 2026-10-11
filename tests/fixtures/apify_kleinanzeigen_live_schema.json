@@ -1,0 +1,12 @@
+{
+  "listingId": "3507459086",
+  "title": "Sanitized current actor example",
+  "description": "Public sanitized listing description.",
+  "price": 2350,
+  "currency": "EUR",
+  "url": "https://www.kleinanzeigen.de/s-anzeige/sanitized-current/3507459086",
+  "location": "Sanitized town",
+  "postalCode": "21680",
+  "sellerType": "PRIVATE",
+  "attributes": {"brand": "Peugeot", "model": "1007", "mileage": "126.500 km", "power": "109 PS"}
+}
