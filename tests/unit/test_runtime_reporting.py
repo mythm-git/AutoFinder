@@ -104,8 +104,9 @@ def _summary(*, status: str = "success", new: int = 3, passed: int = 2) -> Runti
 
 def test_zero_new_summary_is_successful_noop_without_ai_or_candidate_counts() -> None:
     text = RuntimeReporter.format_summary(_summary(new=0, passed=0))
-    assert "Run completed ✅" in text and "No new cars to process." in text
-    assert "AI:" not in text and "Deals:" not in text
+    assert "AutoFinder Run" in text and "✅ SUCCESS" in text
+    assert "Analyzed: 0" in text and "Candidates: 0" in text
+    assert "AUTOFINDER DEAL FOUND" not in text and "STRONG DEAL" not in text
 
 
 def test_filtered_out_normal_partial_and_failed_summaries_render_safely() -> None:
@@ -113,9 +114,10 @@ def test_filtered_out_normal_partial_and_failed_summaries_render_safely() -> Non
     normal = RuntimeReporter.format_summary(_summary())
     partial = RuntimeReporter.format_summary(_summary(status="partial_success"))
     failed = RuntimeReporter.format_summary(_summary(status="failed", new=0, passed=0))
-    assert "Passed: 0" in filtered and "Candidates: 0" in filtered
-    assert "Analyzed: 2" in normal and "Review: 1" in normal and "Duration: 12.8s" in normal
-    assert "partial success" in partial and "Run failed ❌" in failed
+    assert "New: 3" in filtered and "Candidates: 0" in filtered
+    assert "Analyzed: 2" in normal and "Evaluated: 2" in normal
+    assert "⚠️ PARTIAL_SUCCESS" in partial and "❌ FAILED" in failed
+    assert "Next run: ~45 min" in normal
 
 
 def test_runtime_summary_validates_counts_and_duration() -> None:
@@ -128,11 +130,15 @@ def test_runtime_summary_validates_counts_and_duration() -> None:
 def test_review_and_strong_candidates_include_upstream_values_without_recalculation() -> None:
     review = RuntimeReporter.format_candidate(_listing(), _analysis(), _repair(), _valuation(), _financial(), _evaluation(), 4)
     strong = RuntimeReporter.format_candidate(_listing(), _analysis(), _repair(), _valuation(), _financial(), _evaluation(decision="strong_candidate"), 4)
-    assert review is not None and "AutoFinder Candidate — REVIEW" in review
-    assert "Expected investment: €2040" in review and "Expected profit: +€560" in review
-    assert "Conservative: -3.27%" in review and "Expected: +27.45%" in review and "Optimistic: +49.75%" in review
-    assert "Minimum: €120" in review and "As-is: €1500 / €2000 / €2400" in review and "Source: AI estimate" in review
-    assert "AutoFinder Strong Candidate" in strong and "Warnings:" in strong
+    assert review is not None and "AUTOFINDER DEAL FOUND" in review and "⭐ DECISION: REVIEW" in review
+    assert "FINANCIALS" in review and "Purchase        €1,850" in review and "Expected profit +€560" in review
+    assert "Estimated repairs:" in review and "€120 – €190 – €290" in review
+    assert "⚠️ WATCH OUT" in review and "Confidence:" in review
+    assert _listing().url in review
+    assert strong is not None and strong.startswith("🚨 STRONG DEAL 🚨") and "AUTOFINDER HIGH-PRIORITY FIND" in strong
+    assert "✅ STRONG_CANDIDATE" in strong and "CHECK THIS CAR NOW" in strong
+    for label in ("PRICE:", "EXPECTED ROI:", "EXPECTED PROFIT:"):
+        assert review.index(label) < review.index("FINANCIALS")
 
 
 def test_rejected_deal_never_formats_or_sends_candidate_alert() -> None:
@@ -145,20 +151,26 @@ def test_rejected_deal_never_formats_or_sends_candidate_alert() -> None:
     assert not captured
 
 
-def test_candidate_points_keep_faults_and_completed_repairs_semantically_separate() -> None:
-    text = RuntimeReporter.format_candidate(_listing(), _analysis(), _repair(), _valuation(), _financial(), _evaluation())
+def test_candidate_watch_out_uses_validated_missing_information_and_risks() -> None:
+    text = RuntimeReporter.format_candidate(_listing(), _analysis(), _repair(), _valuation(), _financial(), _evaluation(), 5)
     assert text is not None
-    assert "Current fault: air conditioning: not working" in text
-    assert "Completed repair: front brakes: recently replaced" in text
+    assert "Service history is incomplete." in text
     assert "Missing: tuv" in text
+
+
+def test_candidate_rendering_handles_missing_optional_listing_fields() -> None:
+    listing = replace(_listing(), url=None, location=replace(_listing().location, city=None, postal_code=None, raw_text=None))
+    text = RuntimeReporter.format_candidate(listing, _analysis(), _repair(), _valuation(), _financial(), _evaluation())
+    assert text is not None
+    assert "Location unavailable" in text and "Listing URL unavailable." in text
 
 
 def test_reason_mapping_unknown_codes_bounded_lists_and_message_length() -> None:
     assert reason_text("conservative_roi_negative") == "Conservative scenario is still loss-making."
     assert "unknown_future_code" in reason_text("unknown_future_code")
-    analysis = _analysis().model_copy(update={"current_faults": _analysis().current_faults * 30})
+    repair = _repair().model_copy(update={"uncertainty_items": _repair().uncertainty_items * 30})
     listing = replace(_listing(), title="*[]<>_& " * 200, url=None)
-    text = RuntimeReporter.format_candidate(listing, analysis, _repair(), _valuation(), _financial(), _evaluation(), 2)
+    text = RuntimeReporter.format_candidate(listing, _analysis(), repair, _valuation(), _financial(), _evaluation(), 2)
     assert text is not None and "+28 more" in text and "Listing URL unavailable." in text
     assert len(text) <= TELEGRAM_TEXT_LIMIT
     title_listing = replace(_listing(), title="x" * 500, vehicle=replace(_listing().vehicle, make=None, model=None))
@@ -176,7 +188,7 @@ def test_plain_text_transport_needs_no_markdown_escaping_or_parse_mode() -> None
     listing = replace(_listing(), title="[*] <vehicle> & _text_")
     assert reporter.send_candidate(listing, _analysis(), _repair(), _valuation(), _financial(), _evaluation())
     payload = json.loads(captured[0].data.decode("utf-8"))
-    assert "parse_mode" not in payload and "Human inspection and approval required." in payload["text"]
+    assert "parse_mode" not in payload and "Verify car physically before buying" in payload["text"]
 
 
 def test_summary_and_candidate_delivery_respect_configuration_and_keep_inputs_immutable(caplog: pytest.LogCaptureFixture) -> None:

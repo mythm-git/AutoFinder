@@ -19,6 +19,7 @@ from autofinder.valuation.models import AIValuation
 
 TELEGRAM_TEXT_LIMIT = 4_000
 _ITEM_TEXT_LIMIT = 180
+_SEPARATOR = "━━━━━━━━━━━━━━━━━━━━━━"
 
 _REASON_TEXT: dict[str, str] = {
     DealEvaluationCode.EXPECTED_PROFIT_NON_POSITIVE.value: "Expected profit is not positive.",
@@ -84,32 +85,26 @@ class RuntimeReporter:
 
     @staticmethod
     def format_summary(summary: RuntimeRunSummary) -> str:
-        """Format one concise plain-text runtime summary without fabricated counts."""
-        heading = {
-            RuntimeRunStatus.SUCCESS: "Run completed ✅",
-            RuntimeRunStatus.PARTIAL_SUCCESS: "Run completed with partial success ⚠️",
-            RuntimeRunStatus.FAILED: "Run failed ❌",
+        """Format one compact, deliberately non-promotional runtime summary."""
+        status = {
+            RuntimeRunStatus.SUCCESS: "✅ SUCCESS",
+            RuntimeRunStatus.PARTIAL_SUCCESS: "⚠️ PARTIAL_SUCCESS",
+            RuntimeRunStatus.FAILED: "❌ FAILED",
         }[summary.status]
-        lines = ["AutoFinder Runtime", "", heading, "", "Collection:", f"• Collected: {summary.listings_collected}"]
-        if summary.invalid_identity_count:
-            lines.append(f"• Invalid identity: {summary.invalid_identity_count}")
-        lines.extend((f"• Already seen: {summary.previously_seen_count}", f"• Same-batch duplicates: {summary.same_batch_duplicate_count}", f"• New: {summary.new_listings_count}"))
-        if summary.new_listings_count == 0:
-            lines.extend(("", "No new cars to process.", "", f"Duration: {_duration(summary.duration_seconds)}"))
-            return "\n".join(lines)
-        lines.extend((
-            "", "Normalization:", f"• Succeeded: {summary.normalization_success_count}", f"• Failed: {summary.normalization_failure_count}",
-            "", "Filtering:", f"• Passed: {summary.basic_filter_passed_count}", f"• Rejected: {summary.basic_filter_rejected_count}",
+        candidates = summary.review_candidates_count + summary.strong_candidates_count
+        return "\n".join((
+            "AutoFinder Run",
+            status,
+            "",
+            f"Collected: {summary.listings_collected}",
+            f"New: {summary.new_listings_count}",
+            f"Analyzed: {summary.ai_analysis_attempted_count}",
+            f"Evaluated: {summary.deals_evaluated_count}",
+            f"Candidates: {candidates}",
+            "",
+            "Next run: ~45 min",
         ))
-        if summary.basic_filter_passed_count == 0:
-            lines.extend(("", "Candidates: 0", "", f"Duration: {_duration(summary.duration_seconds)}"))
-            return "\n".join(lines)
-        lines.extend((
-            "", "AI:", f"• Analyzed: {summary.ai_analysis_attempted_count}", f"• Failed: {summary.ai_analysis_failed_count}",
-            "", "Deals:", f"• Rejected: {summary.rejected_deals_count}", f"• Review: {summary.review_candidates_count}", f"• Strong: {summary.strong_candidates_count}",
-            "", f"Duration: {_duration(summary.duration_seconds)}",
-        ))
-        return "\n".join(lines)
+
 
     @staticmethod
     def format_candidate(
@@ -121,66 +116,95 @@ class RuntimeReporter:
         evaluation: DealEvaluation,
         max_list_items: int = 4,
     ) -> str | None:
-        """Render a concise candidate alert using only upstream values; reject is silent."""
+        """Render a visually distinct alert from validated upstream values only."""
         if evaluation.decision is DealDecision.REJECT:
             return None
         if max_list_items < 1:
             raise ValueError("max_list_items must be positive")
-        strong = evaluation.decision is DealDecision.STRONG_CANDIDATE
-        header = "AutoFinder Strong Candidate" if strong else "AutoFinder Candidate — REVIEW"
         expected = financial_analysis.expected
         conservative = financial_analysis.conservative
         optimistic = financial_analysis.optimistic
         vehicle = analysis.vehicle.interpreted_from_listing
-        make = listing.vehicle.make or vehicle.make
-        model = listing.vehicle.model or vehicle.model
-        identity = _clean(" ".join(part for part in (make, model, vehicle.variant) if part)) or _clean(listing.title) or "Vehicle details unavailable"
+        identity = _clean(" ".join(part for part in (listing.vehicle.make or vehicle.make, listing.vehicle.model or vehicle.model, vehicle.variant) if part)) or _clean(listing.title) or "Vehicle details unavailable"
         location = _clean(" ".join(part for part in (listing.location.postal_code, listing.location.city) if part)) or "Location unavailable"
-
-        lines = [
-            header, "", _bounded(identity, 120), _money(listing.price_eur), _bounded(location, 100),
-            "", f"Decision: {evaluation.decision.value.upper()}",
-            f"Condition: {analysis.overall_condition.value.replace('_', ' ').title()}",
-            f"Risk: {analysis.risk_level.value.replace('_', ' ').title()}",
-            f"Analysis confidence: {_confidence(analysis.analysis_confidence)}",
-        ]
-        vehicle_facts = _vehicle_facts(vehicle.registration_year, listing.vehicle.mileage_km, listing.vehicle.power_ps, vehicle.fuel_type, vehicle.transmission, vehicle.tuv_until)
-        if vehicle_facts:
-            lines.extend(("", "Vehicle:", *vehicle_facts))
-        important_points = _important_points(analysis, max_list_items)
-        if important_points:
-            lines.extend(("", "Important points:", *important_points))
-        summary = repair_estimate.cost_summary
-        lines.extend((
-            "", "Repair estimate:",
-            f"• Minimum: €{summary.minimum_total_eur}",
-            f"• Expected: €{summary.expected_total_eur}",
-            f"• High: €{summary.high_total_eur}",
-            f"• Confidence: {_confidence(repair_estimate.confidence)}",
-            "", "AI valuation:",
-            f"• As-is: {_value_range(valuation.as_is_value.conservative_eur, valuation.as_is_value.expected_eur, valuation.as_is_value.optimistic_eur)}",
-            f"• Post-repair: {_value_range(valuation.post_repair_resale_value.conservative_eur, valuation.post_repair_resale_value.expected_eur, valuation.post_repair_resale_value.optimistic_eur)}",
-            f"• Confidence: {_confidence(valuation.confidence)}",
-            "• Source: AI estimate",
-            "", "Financials:",
-            f"• Expected investment: €{expected.total_investment_eur}",
-            f"• Expected profit: {_signed_money(expected.expected_profit_eur)}",
-            f"• Expected ROI: {_percent(expected.roi_percent)}",
-            "", "ROI scenarios:",
-            f"• Conservative: {_percent(conservative.roi_percent)}",
-            f"• Expected: {_percent(expected.roi_percent)}",
-            f"• Optimistic: {_percent(optimistic.roi_percent)}",
-        ))
-        notes = _notes(evaluation.reasons + evaluation.warnings, max_list_items)
-        if notes:
-            lines.extend(("", "Why this decision:" if not strong else "Warnings:", *notes))
-        lines.extend(("", "Human inspection and approval required."))
+        strong = evaluation.decision is DealDecision.STRONG_CANDIDATE
+        lines = _candidate_header(strong, identity, location, listing.price_eur, expected.expected_profit_eur, expected.roi_percent)
+        lines.extend((_SEPARATOR, "FINANCIALS", _SEPARATOR, f"Purchase        {_money_int(expected.purchase_price_eur)}", f"Repair est.     {_money_int(expected.repair_cost_eur)}", f"Total cost      {_money_int(expected.total_investment_eur)}", f"Expected resale {_money_int(expected.resale_value_eur)}", "", f"Expected profit {_signed_money(expected.expected_profit_eur)}", f"Expected ROI    {_percent(expected.roi_percent)}", "", f"Conservative ROI {_percent(conservative.roi_percent)}", f"Optimistic ROI   {_percent(optimistic.roi_percent)}", "", _SEPARATOR, "CONDITION", _SEPARATOR, f"Condition: {analysis.overall_condition.value.replace('_', ' ').title()}", f"Risk: {analysis.risk_level.value.replace('_', ' ').title()}"))
+        repairs = _repair_items(repair_estimate, max_list_items)
+        if repairs:
+            lines.extend(("", "Repairs:", *repairs))
+        repair_summary = repair_estimate.cost_summary
+        lines.extend(("", "Estimated repairs:", f"{_money_int(repair_summary.minimum_total_eur)} – {_money_int(repair_summary.expected_total_eur)} – {_money_int(repair_summary.high_total_eur)}", "", _SEPARATOR, "⚠️ WATCH OUT", _SEPARATOR))
+        watch_out = _watch_out(analysis, evaluation, max_list_items)
+        lines.extend(watch_out or ("• No additional validated warnings.",))
+        lines.extend(("", "Confidence:", f"Analysis   {_confidence(analysis.analysis_confidence)}", f"Repair     {_confidence(repair_estimate.confidence)}", f"Valuation  {_confidence(valuation.confidence)}", "", _SEPARATOR, "WHY IT'S INTERESTING", _SEPARATOR, *_interesting_reasons(listing, expected.expected_profit_eur, expected.roi_percent, conservative.roi_percent), "", _SEPARATOR, "OPEN LISTING", _SEPARATOR))
         url = _clean(listing.url)
         if url:
-            lines.extend(("", "Kleinanzeigen:", _bounded(url, 500)))
+            if strong:
+                lines.append("CHECK THIS CAR NOW")
+            lines.append(_bounded(url, 500))
         else:
-            lines.extend(("", "Listing URL unavailable."))
+            lines.append("Listing URL unavailable.")
+        lines.extend(("", _SEPARATOR, "Verify car physically before buying", _SEPARATOR))
         return _bound_message("\n".join(lines))
+
+
+def _candidate_header(strong: bool, identity: str, location: str, price: float | None, profit: int, roi: Decimal) -> list[str]:
+    """Build the decision-specific top block without evaluating the deal again."""
+    if strong:
+        return [
+            "🚨 STRONG DEAL 🚨",
+            "AUTOFINDER HIGH-PRIORITY FIND",
+            _SEPARATOR,
+            _bounded(identity, 120),
+            f"PRICE: {_money(price)}",
+            f"EXPECTED ROI: {_percent(roi)}",
+            f"EXPECTED PROFIT: {_signed_money(profit)}",
+            "✅ STRONG_CANDIDATE",
+            _bounded(location, 100),
+            "",
+        ]
+    return [
+        _SEPARATOR,
+        "AUTOFINDER DEAL FOUND",
+        _SEPARATOR,
+        _bounded(identity, 120),
+        _bounded(location, 100),
+        f"PRICE: {_money(price)}",
+        "",
+        "⭐ DECISION: REVIEW",
+        f"EXPECTED ROI: {_percent(roi)}",
+        f"EXPECTED PROFIT: {_signed_money(profit)}",
+        "",
+    ]
+
+
+def _repair_items(repair_estimate: RepairEstimate, limit: int) -> list[str]:
+    """Show only persisted repair evidence, bounded for a mobile alert."""
+    items = repair_estimate.required_repairs + repair_estimate.near_term_maintenance + repair_estimate.uncertainty_items
+    return _bounded_items([f"• {_bounded(_clean(f'{item.component}: {item.description}'), _ITEM_TEXT_LIMIT)}" for item in items], limit)
+
+
+def _watch_out(analysis: VehicleAnalysis, evaluation: DealEvaluation, limit: int) -> list[str]:
+    """Use existing warnings and recorded missing information without inference."""
+    items = [f"• {reason_text(code)}" for code in evaluation.reasons + evaluation.warnings]
+    items.extend(f"• Missing: {_bounded(_clean(item.topic.value.replace('_', ' ')), _ITEM_TEXT_LIMIT)}" for item in analysis.missing_information)
+    items.extend(f"• {_bounded(_clean(item.explanation), _ITEM_TEXT_LIMIT)}" for item in analysis.risk_flags)
+    return _bounded_items(items, limit)
+
+
+def _interesting_reasons(listing: NormalizedListing, profit: int, roi: Decimal, conservative_roi: Decimal) -> list[str]:
+    """State only deterministic positives already present in canonical inputs."""
+    reasons: list[str] = []
+    if profit > 0:
+        reasons.append("✅ Expected profit is positive")
+    if roi > 0:
+        reasons.append("✅ Expected ROI is positive")
+    if listing.seller.type.value == "private":
+        reasons.append("✅ Private seller")
+    if conservative_roi > 0:
+        reasons.append("✅ Conservative scenario is positive")
+    return reasons or ["• Candidate decision is based on the validated pipeline output"]
 
 
 def reason_text(code: DealEvaluationCode | str) -> str:
@@ -236,6 +260,12 @@ def _value_range(conservative: int, expected: int, optimistic: int) -> str:
 
 def _money(value: float | None) -> str:
     return f"€{int(value):,}" if value is not None else "Price unavailable"
+
+
+
+def _money_int(value: int) -> str:
+    """Format an already-calculated euro amount without any calculation."""
+    return f"€{value:,}"
 
 
 def _signed_money(value: int) -> str:
