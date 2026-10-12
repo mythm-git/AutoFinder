@@ -15,7 +15,7 @@ DealEvaluator is pure local Python. It makes no AI, provider, marketplace, or we
 ## Fixed rule flow
 
 1. Reject when expected profit is non-positive.
-2. Reject when expected ROI is below configured minimum (initially 20%). ROI is already based on full investment from Step 9.
+2. Reject when expected ROI is below configured minimum (currently 17%). ROI is already based on full investment from Step 9.
 3. Reject very-high vehicle risk when enabled in configuration.
 4. Otherwise, check strong requirements independently: conservative ROI, risk level, analysis confidence, repair confidence, and valuation confidence.
 5. Return STRONG_CANDIDATE only when every strong requirement passes; otherwise return REVIEW.
@@ -26,7 +26,7 @@ Optimistic ROI is context only and can never rescue a failed expected-profit or 
 
 config/autofinder.yaml defines the non-secret deal_evaluation policy:
 
-- minimum_expected_roi_percent: 20.0
+- minimum_expected_roi_percent: 17.0
 - minimum_conservative_roi_for_strong_percent: 0.0
 - minimum_analysis_confidence: 0.60
 - minimum_repair_confidence: 0.55

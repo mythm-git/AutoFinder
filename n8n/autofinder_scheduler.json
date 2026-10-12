@@ -3,7 +3,7 @@
     "id": "AFScheduler0001",
     "name": "AutoFinder Scheduler",
     "description": "Runs the local AutoFinder process every 45 minutes.",
-    "active": false,
+    "active": true,
     "isArchived": false,
     "nodes": [
       {
@@ -25,7 +25,7 @@
       },
       {
         "parameters": {
-          "command": "cd /d C:\\Users\\maitham\\Desktop\\AutoFinder && python -m autofinder"
+          "command": "cd /d C:\\Users\\maitham\\Desktop\\AutoFinder && python scripts\\run_scheduled_autofinder.py"
         },
         "id": "6238fc43-2806-4c2d-8a3b-c9df93944c9f",
         "name": "Run AutoFinder",

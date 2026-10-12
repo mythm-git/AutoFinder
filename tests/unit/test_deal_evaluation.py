@@ -136,14 +136,26 @@ def test_current_step9_fixture_rejects_for_both_expected_financial_gates() -> No
     )
 
 
+@pytest.mark.parametrize(("roi", "eligible"), [
+    (Decimal("16.99"), False), (Decimal("17.00"), True), (Decimal("17.01"), True),
+    (Decimal("19.05"), True), (Decimal("20.00"), True),
+])
+def test_expected_roi_gate_uses_configured_seventeen_percent_boundary(roi: Decimal, eligible: bool) -> None:
+    financial = _financial(conservative=0, expected=17, optimistic=80)
+    financial = financial.model_copy(update={"expected": financial.expected.model_copy(update={"roi_percent": roi, "expected_profit_eur": 170})})
+    result = _evaluate(financial=financial)
+    assert result.financially_eligible is eligible
+    assert (DealEvaluationCode.EXPECTED_ROI_BELOW_MINIMUM in result.reasons) is not eligible
+
+
 def test_optimistic_roi_never_rescues_failing_expected_roi() -> None:
-    result = _evaluate(financial=_financial(conservative=0, expected=19, optimistic=80))
+    result = _evaluate(financial=_financial(conservative=0, expected=16, optimistic=80))
     assert result.decision is DealDecision.REJECT
     assert DealEvaluationCode.EXPECTED_ROI_BELOW_MINIMUM in result.reasons
 
 
 def test_expected_roi_at_threshold_and_conservative_threshold_can_be_strong() -> None:
-    result = _evaluate(financial=_financial(conservative=0, expected=20, optimistic=55))
+    result = _evaluate(financial=_financial(conservative=0, expected=17, optimistic=55))
     assert result.financially_eligible
     assert result.decision is DealDecision.STRONG_CANDIDATE
     assert DealEvaluationCode.CONSERVATIVE_SCENARIO_POSITIVE in result.warnings

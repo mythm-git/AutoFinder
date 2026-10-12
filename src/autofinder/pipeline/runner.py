@@ -262,7 +262,7 @@ class RuntimePipeline:
         try:
             self._audit_repository.append(record)
             self._audited_listing_keys.add(record.listing_key)
-        except OSError as error:
+        except (OSError, TypeError, ValueError) as error:
             self._logger.error("Audit persistence failed: error_type=%s", type(error).__name__)
 
     def _complete(

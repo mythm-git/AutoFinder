@@ -39,12 +39,25 @@ def _record(run_id: str, now: datetime, listing: NormalizedListing, outcome: str
 
 
 def _listing(listing: NormalizedListing) -> dict[str, Any]:
-    value = asdict(listing)
+    value = _json_safe(asdict(listing))
     value["identity"]["canonical_key"] = listing.identity.canonical_key
     value["source"]["raw_data"] = _sanitize(value["source"].get("raw_data", {}))
     # Compatibility fields make old and new records equally reportable.
     value.update({"url": listing.url, "price_eur": listing.price_eur, "make": listing.vehicle.make, "model": listing.vehicle.model, "mileage_km": listing.vehicle.mileage_km, "power_ps": listing.vehicle.power_ps, "seller_type": listing.seller.type.value, "location": listing.location.raw_text or listing.location.city})
     return value
+
+
+def _json_safe(value: Any) -> Any:
+    """Convert dataclass evidence to JSON-safe primitives before audit persistence."""
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(item) for item in value]
+    return value
+
+
 def _sanitize(value: Any) -> Any:
     """Recursively retain public listing evidence while excluding credentials/contact data."""
     if isinstance(value, dict):

@@ -42,7 +42,7 @@ telegram:
   max_list_items: 4
 
 deal_evaluation:
-  minimum_expected_roi_percent: 20.0
+  minimum_expected_roi_percent: 17.0
   minimum_conservative_roi_for_strong_percent: 0.0
   minimum_analysis_confidence: 0.60
   minimum_repair_confidence: 0.55

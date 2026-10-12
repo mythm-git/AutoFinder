@@ -7,6 +7,10 @@ from pathlib import Path
 from autofinder.reporting.audit_models import AuditRecord
 from autofinder.reporting.audit_repository import JsonlAuditRepository
 from autofinder.reporting.daily_report import DailyReportGenerator
+from autofinder.reporting.audit_factory import failure_record
+from autofinder.models.collection import RawMarketplaceListing
+from autofinder.normalization import ApifyKleinanzeigenNormalizer
+from datetime import UTC, datetime
 
 
 def _record(key: str, outcome: str, reasons: tuple[str, ...] = ()) -> AuditRecord:
@@ -55,3 +59,12 @@ def test_empty_day_report_is_readable() -> None:
 
     assert "No new-listing audit records" in report
     assert "No rejection reasons recorded" in report
+
+
+def test_audit_failure_record_with_datetime_listing_fields_is_jsonl_safe(tmp_path: Path) -> None:
+    """Audit must not prevent final runtime reporting after a listing-stage failure."""
+    raw = RawMarketplaceListing("kleinanzeigen", {"id": "3521306041", "title": "Safe", "url": "https://www.kleinanzeigen.de/s-anzeige/safe/3521306041", "price": 1000, "currency": "EUR", "location": "Safe", "sellerType": "private", "attributes": {"brand": "Example", "model": "Car"}}, datetime.now(UTC))
+    record = failure_record("run", datetime.now(UTC), ApifyKleinanzeigenNormalizer().normalize(raw).listing, "vehicle_analysis", "VehicleAnalysisError")
+    repository = JsonlAuditRepository(tmp_path, "Europe/Berlin")
+    repository.append(record)
+    assert repository.records_for_date(record.local_date)[0].listing["collected_at"].endswith("+00:00")

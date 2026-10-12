@@ -26,7 +26,7 @@ def test_loads_expected_foundation_configuration() -> None:
     assert config.telegram.runtime_summary_enabled is True
     assert config.telegram.candidate_alerts_enabled is True
     assert config.telegram.max_list_items == 4
-    assert config.deal_evaluation.minimum_expected_roi_percent == 20
+    assert config.deal_evaluation.minimum_expected_roi_percent == 17
     assert config.deal_evaluation.minimum_conservative_roi_for_strong_percent == 0
     assert config.deal_evaluation.maximum_risk_for_strong.value == "medium"
     assert config.deal_evaluation.reject_very_high_risk is True
